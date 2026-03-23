@@ -85,8 +85,8 @@ cd chatverse/backend
 # Install dependencies
 npm install
 
-# Create environment file
-cp .env.example .env
+# Change .env.example to .env
+rename ".env.example" to ".env"
 ```
 
 

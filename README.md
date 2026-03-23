@@ -89,12 +89,7 @@ npm install
 cp .env.example .env
 ```
 
-**Edit `.env`:**
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/chatverse
-JWT_SECRET=replace_this_with_a_long_random_string_at_least_32_chars
-CLIENT_URL=http://localhost:3000
+
 ```
 
 > **MongoDB Atlas?** Replace MONGO_URI with your Atlas connection string:

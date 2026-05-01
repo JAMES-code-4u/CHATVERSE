@@ -6,9 +6,11 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
 
-const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/user");
-const messageRoutes = require("./routes/messages");
+const authRoutes       = require("./routes/auth");
+const userRoutes       = require("./routes/user");
+const messageRoutes    = require("./routes/messages");
+const aiRoutes         = require("./routes/ai");
+const recordingRoutes  = require("./routes/recordings");
 
 const { socketHandler } = require("./socket/socketHandler");
 
@@ -30,9 +32,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/messages", messageRoutes);
+app.use("/api/auth",       authRoutes);
+app.use("/api/users",      userRoutes);
+app.use("/api/messages",   messageRoutes);
+app.use("/api/groups",     require("./routes/groups"));
+app.use("/api/ai",         aiRoutes);
+app.use("/api/recordings", recordingRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

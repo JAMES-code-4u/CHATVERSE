@@ -16,11 +16,17 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
   const timerRef = useRef(null);
   const peerRef = useRef(null);
   const screenStreamRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
 
   const isVideo = callData?.callType === "video";
 
   const cleanup = useCallback(() => {
     clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
     peerRef.current?.destroy();
     stream?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -168,6 +174,49 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
     return `${m}:${sec}`;
   };
 
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+    const remoteStream = remoteVideoRef.current?.srcObject;
+    if (!remoteStream && !stream) return;
+    try {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = actx.createMediaStreamDestination();
+      if (stream && stream.getAudioTracks().length > 0) {
+        actx.createMediaStreamSource(new MediaStream([stream.getAudioTracks()[0]])).connect(dest);
+      }
+      if (remoteStream && remoteStream.getAudioTracks().length > 0) {
+        actx.createMediaStreamSource(new MediaStream([remoteStream.getAudioTracks()[0]])).connect(dest);
+      }
+      const recorder = new MediaRecorder(dest.stream);
+      const chunks = [];
+      recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = `recording_${callData?.name || "call"}_${Date.now()}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start voice recording.");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur flex items-center justify-center fade-in">
       <div className="relative w-full max-w-3xl mx-4 rounded-3xl overflow-hidden bg-[#1a1b23] shadow-2xl">
@@ -196,9 +245,17 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
 
           {/* Screen sharing badge */}
           {screenSharing && (
-            <div className="absolute top-4 right-4 bg-primary/80 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+            <div className="absolute top-4 right-4 bg-primary/80 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
               <span className="material-symbols-outlined text-xs">screen_share</span>
               Sharing Screen
+            </div>
+          )}
+
+          {/* Recording badge */}
+          {isRecording && (
+            <div className={`absolute ${screenSharing ? "top-14" : "top-4"} right-4 bg-red-500/80 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse`}>
+              <span className="w-2 h-2 bg-white rounded-full animate-ping" />
+              Recording
             </div>
           )}
 
@@ -239,6 +296,16 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
               <span className="material-symbols-outlined text-xl">{screenSharing ? "stop_screen_share" : "screen_share"}</span>
             </button>
           )}
+
+          {/* Record Voice Button */}
+          <button
+            onClick={toggleRecording}
+            disabled={!callActive}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${isRecording ? "bg-red-500 text-white ring-2 ring-red-400 ring-offset-2 ring-offset-[#1a1b23] animate-pulse" : "bg-white/10 text-white hover:bg-white/20"}`}
+            title={isRecording ? "Stop recording" : "Record voice conversation"}
+          >
+            <span className="material-symbols-outlined text-xl">{isRecording ? "stop_circle" : "radio_button_checked"}</span>
+          </button>
 
           {/* End Call */}
           <button

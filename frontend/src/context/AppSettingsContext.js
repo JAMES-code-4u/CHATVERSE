@@ -31,12 +31,36 @@ const DEFAULT_SETTINGS = {
 };
 
 export const AppSettingsProvider = ({ children }) => {
+  const normalize = (raw) => {
+    if (!raw || typeof raw !== "object") return { ...DEFAULT_SETTINGS };
+    const out = { ...DEFAULT_SETTINGS };
+    try {
+      Object.keys(out).forEach((k) => {
+        if (raw.hasOwnProperty(k)) {
+          const def = DEFAULT_SETTINGS[k];
+          const val = raw[k];
+          if (typeof def === "boolean") {
+            out[k] = val === true || val === "true";
+          } else if (typeof def === "number") {
+            out[k] = Number(val) || def;
+          } else {
+            out[k] = val !== undefined && val !== null ? val : def;
+          }
+        }
+      });
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
+    return out;
+  };
+
   const [settings, setSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem("cv_settings");
-      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+      const savedRaw = localStorage.getItem("cv_settings");
+      const parsed = savedRaw ? JSON.parse(savedRaw) : null;
+      return parsed ? normalize(parsed) : { ...DEFAULT_SETTINGS };
     } catch {
-      return DEFAULT_SETTINGS;
+      return { ...DEFAULT_SETTINGS };
     }
   });
 
@@ -74,7 +98,14 @@ export const AppSettingsProvider = ({ children }) => {
   }, [settings.accentColor]);
 
   const updateSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    // keep types aligned with defaults when possible
+    const def = DEFAULT_SETTINGS[key];
+    let v = value;
+    if (def !== undefined) {
+      if (typeof def === "boolean") v = value === true || value === "true";
+      else if (typeof def === "number") v = Number(value) || def;
+    }
+    setSettings(prev => ({ ...prev, [key]: v }));
   };
 
   const updateMany = (patch) => {

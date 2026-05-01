@@ -15,15 +15,15 @@ const LIGHT_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
 // ── Sticker data ──────────────────────────────────────────────────────────────
 const STICKERS = [
-  { id: 1,  emoji: "🐱", label: "Cat" },
-  { id: 2,  emoji: "🐶", label: "Dog" },
-  { id: 3,  emoji: "🐼", label: "Panda" },
-  { id: 4,  emoji: "🦊", label: "Fox" },
-  { id: 5,  emoji: "🐸", label: "Frog" },
-  { id: 6,  emoji: "🦄", label: "Unicorn" },
-  { id: 7,  emoji: "🐙", label: "Octopus" },
-  { id: 8,  emoji: "🦋", label: "Butterfly" },
-  { id: 9,  emoji: "🌸", label: "Blossom" },
+  { id: 1, emoji: "🐱", label: "Cat" },
+  { id: 2, emoji: "🐶", label: "Dog" },
+  { id: 3, emoji: "🐼", label: "Panda" },
+  { id: 4, emoji: "🦊", label: "Fox" },
+  { id: 5, emoji: "🐸", label: "Frog" },
+  { id: 6, emoji: "🦄", label: "Unicorn" },
+  { id: 7, emoji: "🐙", label: "Octopus" },
+  { id: 8, emoji: "🦋", label: "Butterfly" },
+  { id: 9, emoji: "🌸", label: "Blossom" },
   { id: 10, emoji: "🎉", label: "Party" },
   { id: 11, emoji: "💥", label: "Boom" },
   { id: 12, emoji: "🌈", label: "Rainbow" },
@@ -37,12 +37,12 @@ const STICKERS = [
 
 // ── Virtual background options ─────────────────────────────────────────────────
 const VBGS = [
-  { id: "none",    label: "None",       style: {} },
-  { id: "blur",    label: "Blur",       style: { filter: "blur(8px)" } },
-  { id: "office",  label: "Office",     color: "#1a1a2e" },
-  { id: "beach",   label: "Beach",      color: "#0077b6" },
-  { id: "forest",  label: "Forest",     color: "#1b4332" },
-  { id: "galaxy",  label: "Galaxy",     color: "#0d0221" },
+  { id: "none", label: "None", style: {} },
+  { id: "blur", label: "Blur", style: { filter: "blur(8px)" } },
+  { id: "office", label: "Office", color: "#1a1a2e" },
+  { id: "beach", label: "Beach", color: "#0077b6" },
+  { id: "forest", label: "Forest", color: "#1b4332" },
+  { id: "galaxy", label: "Galaxy", color: "#0d0221" },
 ];
 
 // ── AI Bot contact ────────────────────────────────────────────────────────────
@@ -72,6 +72,26 @@ function timeAgo(dateStr) {
   return Math.floor(h / 24) + "d ago";
 }
 
+// ── Resizable Panel Hook ──────────────────────────────────────────────────────
+function useResizablePanel(defaultWidth = 320, min = 240, max = 520) {
+  const [width, setWidth] = useState(defaultWidth);
+  const startDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    const onMove = (me) => {
+      setWidth(Math.min(max, Math.max(min, startW + me.clientX - startX)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+  return { width, startDrag };
+}
+
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
 function ChatVerseLogo() {
   return (
@@ -84,6 +104,8 @@ function ChatVerseLogo() {
         @keyframes stickerPop{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0deg)}}
         @keyframes waveBar{0%,100%{height:4px}50%{height:20px}}
         @keyframes reactionPop{0%{transform:scale(0)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
+        @keyframes logoShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+        @keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(0,200,255,.6)) drop-shadow(0 0 16px rgba(99,60,255,.4))}50%{filter:drop-shadow(0 0 16px rgba(0,200,255,.9)) drop-shadow(0 0 32px rgba(99,60,255,.7))}}
       `}</style>
       <span className="text-[#6C5CE7] font-extrabold text-2xl select-none"
         style={{ animation: "glowPulse 2.5s ease-in-out infinite" }}>M</span>
@@ -94,12 +116,22 @@ function ChatVerseLogo() {
 function PanelTitle({ text }) {
   if (text === "ChatVerse") {
     return (
-      <h1 className="text-lg font-extrabold" style={{
-        background: "linear-gradient(135deg,#6C5CE7,#a19afd,#6C5CE7)",
-        backgroundSize: "200% auto",
-        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-        animation: "titleGlow 2.5s ease-in-out infinite, slideIn 0.4s ease-out",
-      }}>ChatVerse</h1>
+      <h1
+        className="font-black select-none tracking-tight"
+        style={{
+          fontSize: "1.45rem",
+          fontFamily: "'Orbitron', system-ui, sans-serif",
+          fontWeight: 900,
+          background: "linear-gradient(90deg, #00c8ff 0%, #3b6fff 25%, #7b3ff5 50%, #3b6fff 75%, #00c8ff 100%)",
+          backgroundSize: "300% 100%",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          animation: "logoShimmer 4s linear infinite, logoGlow 3s ease-in-out infinite, slideIn 0.4s ease-out",
+        }}
+      >
+        ChatVerse
+      </h1>
     );
   }
   return <h1 className="text-lg font-bold text-on-surface" style={{ animation: "slideIn 0.3s ease-out" }}>{text}</h1>;
@@ -124,11 +156,11 @@ function VoiceWaveform({ src, isSent, isDark }) {
     const heights = [4, 8, 14, 20, 16, 10, 18, 22, 12, 6, 16, 20, 8, 14, 10, 18, 22, 6, 14, 20, 12, 8, 18, 10, 16, 4, 8, 12];
     return heights[i % heights.length];
   });
-  const [playing, setPlaying]   = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [elapsed, setElapsed]   = useState(0);
-  const [ready, setReady]       = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [ready, setReady] = useState(false);
   const audioRef = useRef(null);
 
   // Fix 5: wait for metadata before allowing play, handle all error cases
@@ -136,16 +168,16 @@ function VoiceWaveform({ src, isSent, isDark }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onMeta    = () => { setDuration(audio.duration || 0); setReady(true); };
-    const onTime    = () => {
+    const onMeta = () => { setDuration(audio.duration || 0); setReady(true); };
+    const onTime = () => {
       const dur = audio.duration;
       if (dur && isFinite(dur)) {
         setProgress((audio.currentTime / dur) * 100);
         setElapsed(audio.currentTime);
       }
     };
-    const onEnd     = () => { setPlaying(false); setProgress(0); setElapsed(0); };
-    const onError   = () => { setPlaying(false); setReady(false); };
+    const onEnd = () => { setPlaying(false); setProgress(0); setElapsed(0); };
+    const onError = () => { setPlaying(false); setReady(false); };
     const onCanPlay = () => setReady(true);
 
     audio.addEventListener("loadedmetadata", onMeta);
@@ -184,10 +216,10 @@ function VoiceWaveform({ src, isSent, isDark }) {
 
   const fmt = s => {
     if (!s || !isFinite(s)) return "0:00";
-    return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,"0")}`;
+    return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
   };
 
-  const filled   = isSent ? "bg-white" : "bg-[#6C5CE7]";
+  const filled = isSent ? "bg-white" : "bg-[#6C5CE7]";
   const unfilled = isSent ? "bg-white/40" : isDark ? "bg-white/20" : "bg-[#6C5CE7]/25";
 
   return (
@@ -366,25 +398,39 @@ function VirtualBgPicker({ current, onChange, onClose, isDark }) {
   );
 }
 
-// ── Real WebRTC Call Modal (video + voice + screen share) ─────────────────────
-
+// ── Real WebRTC Call Modal (video + voice + screen share + recording) ─────────
 function CallModal({ callData, onEnd, isIncoming = false }) {
   const { socket } = useSocket();
-  const [stream, setStream]               = useState(null);
-  const [callActive, setCallActive]       = useState(false);
-  const [muted, setMuted]                 = useState(false);
-  const [camOff, setCamOff]               = useState(false);
+  const { token } = useAuth();
+  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+
+  const [stream, setStream] = useState(null);
+  const [callActive, setCallActive] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [camOff, setCamOff] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
-  const [callDuration, setCallDuration]   = useState(0);
-  const localVideoRef   = useRef(null);
-  const remoteVideoRef  = useRef(null);
-  const timerRef        = useRef(null);
-  const peerRef         = useRef(null);
+  const [callDuration, setCallDuration] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [recDuration, setRecDuration] = useState(0);
+  const [recSaving, setRecSaving] = useState(false);
+  const [recSaved, setRecSaved] = useState(false);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const timerRef = useRef(null);
+  const recTimerRef = useRef(null);
+  const peerRef = useRef(null);
   const screenStreamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recChunksRef = useRef([]);
+  const remoteStreamRef = useRef(null); // keep reference for recording mix
+
   const isVideo = callData?.callType === "video";
 
   const cleanup = useCallback(() => {
     clearInterval(timerRef.current);
+    clearInterval(recTimerRef.current);
+    if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
     peerRef.current?.destroy();
     stream?.getTracks().forEach(t => t.stop());
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -401,7 +447,10 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
           p.on("signal", signal => {
             socket?.emit("callUser", { userToCall: callData.userId, signalData: signal, from: callData.myId, callType: callData.callType });
           });
-          p.on("stream", remoteStream => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream; });
+          p.on("stream", remoteStream => {
+            remoteStreamRef.current = remoteStream;
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+          });
           peerRef.current = p;
         }
       } catch (err) {
@@ -422,12 +471,15 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
       timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
     });
     socket.on("iceCandidate", ({ candidate }) => { peerRef.current?.signal(candidate); });
-    socket.on("callEnded",   () => { cleanup(); onEnd(); });
-    socket.on("callRejected",() => { cleanup(); onEnd(); });
+    socket.on("callEnded", () => { stopRecording(true); cleanup(); onEnd(); });
+    socket.on("callRejected", () => { cleanup(); onEnd(); });
     if (isIncoming && stream) {
       const p = new SimplePeer({ initiator: false, trickle: false, stream });
       p.on("signal", signal => { socket.emit("answerCall", { to: callData.from, signal }); });
-      p.on("stream", remoteStream => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream; });
+      p.on("stream", remoteStream => {
+        remoteStreamRef.current = remoteStream;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+      });
       p.signal(callData.signal);
       peerRef.current = p;
       setCallActive(true);
@@ -435,12 +487,13 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
     }
     return () => {
       socket.off("callAccepted"); socket.off("iceCandidate");
-      socket.off("callEnded");    socket.off("callRejected");
+      socket.off("callEnded"); socket.off("callRejected");
     };
   }, [socket, stream]); // eslint-disable-line
 
   const endCall = () => {
     socket?.emit("endCall", { to: isIncoming ? callData.from : callData.userId });
+    stopRecording(true);
     cleanup(); onEnd();
   };
 
@@ -480,39 +533,136 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
     socket?.emit("screenShare", { to: isIncoming ? callData.from : callData.userId, sharing: false });
   };
 
-  const fmt = s => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+  // ── Recording ──────────────────────────────────────────────────────────────
+  const startRecording = () => {
+    if (!stream) return;
+    try {
+      // Mix local + remote audio tracks into one MediaStream
+      const audioCtx = new AudioContext();
+      const dest = audioCtx.createMediaStreamDestination();
+      const localSrc = audioCtx.createMediaStreamSource(stream);
+      localSrc.connect(dest);
+      if (remoteStreamRef.current) {
+        const remoteSrc = audioCtx.createMediaStreamSource(remoteStreamRef.current);
+        remoteSrc.connect(dest);
+      }
+
+      const mixedStream = dest.stream;
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus" : "audio/webm";
+      const mr = new MediaRecorder(mixedStream, { mimeType });
+      recChunksRef.current = [];
+      mr.ondataavailable = e => { if (e.data.size > 0) recChunksRef.current.push(e.data); };
+      mr.start(1000); // collect in 1s chunks
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+      setRecDuration(0);
+      recTimerRef.current = setInterval(() => setRecDuration(d => d + 1), 1000);
+    } catch (err) {
+      console.error("Recording start error:", err);
+      alert("Could not start recording: " + err.message);
+    }
+  };
+
+  const stopRecording = async (autoSave = false) => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
+    clearInterval(recTimerRef.current);
+    setRecording(false);
+
+    return new Promise(resolve => {
+      mediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(recChunksRef.current, { type: "audio/webm" });
+        recChunksRef.current = [];
+        if (blob.size < 1000) { resolve(); return; } // ignore empty recordings
+
+        setRecSaving(true);
+        try {
+          const durationStr = fmt(recDuration);
+          const fd = new FormData();
+          fd.append("recording", new File([blob], `call-${Date.now()}.webm`, { type: "audio/webm" }));
+          fd.append("callType", callData?.callType || "voice");
+          fd.append("contactName", callData?.name || "Unknown");
+          fd.append("duration", durationStr);
+
+          const res = await fetch(`${API_URL}/api/recordings/save`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          });
+
+          if (res.ok) {
+            setRecSaved(true);
+            setTimeout(() => setRecSaved(false), 3000);
+          }
+        } catch (err) { console.error("Recording upload error:", err); }
+        finally { setRecSaving(false); resolve(); }
+      };
+      mediaRecorderRef.current.stop();
+    });
+  };
+
+  const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur flex items-center justify-center">
       <div className="relative w-full max-w-3xl mx-4 rounded-3xl overflow-hidden bg-[#1a1b23] shadow-2xl">
+
         {/* Remote video / voice UI */}
         <div className="relative aspect-video bg-[#0d0e14] flex items-center justify-center">
           {isVideo
             ? <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             : <div className="flex flex-col items-center gap-4">
-                {/* Fix 4: Radar waves while connecting, static ring when active */}
-                <div className="relative flex items-center justify-center">
-                  {!callActive && (<>
-                    <span className="absolute inline-flex w-24 h-24 rounded-full bg-[#6C5CE7]/20 animate-ping" style={{animationDuration:"1.2s"}} />
-                    <span className="absolute inline-flex w-32 h-32 rounded-full bg-[#6C5CE7]/12 animate-ping" style={{animationDuration:"1.6s",animationDelay:"0.2s"}} />
-                    <span className="absolute inline-flex w-40 h-40 rounded-full bg-[#6C5CE7]/8 animate-ping" style={{animationDuration:"2s",animationDelay:"0.4s"}} />
-                  </>)}
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 transition-all
-                    ${callActive
-                      ? "bg-[#6C5CE7]/20 border-[#6C5CE7]/60"
-                      : "bg-[#6C5CE7]/25 border-[#6C5CE7]/50"}`}>
-                    <span className="material-symbols-outlined text-5xl text-[#6C5CE7]">person</span>
-                  </div>
+              <div className="relative flex items-center justify-center">
+                {!callActive && (<>
+                  <span className="absolute inline-flex w-24 h-24 rounded-full bg-[#6C5CE7]/20 animate-ping" style={{ animationDuration: "1.2s" }} />
+                  <span className="absolute inline-flex w-32 h-32 rounded-full bg-[#6C5CE7]/12 animate-ping" style={{ animationDuration: "1.6s", animationDelay: "0.2s" }} />
+                  <span className="absolute inline-flex w-40 h-40 rounded-full bg-[#6C5CE7]/8 animate-ping" style={{ animationDuration: "2s", animationDelay: "0.4s" }} />
+                </>)}
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 transition-all
+                    ${callActive ? "bg-[#6C5CE7]/20 border-[#6C5CE7]/60" : "bg-[#6C5CE7]/25 border-[#6C5CE7]/50"}`}>
+                  <span className="material-symbols-outlined text-5xl text-[#6C5CE7]">person</span>
                 </div>
-                <p className="text-white font-semibold text-lg">{callData?.name || "Voice Call"}</p>
-                <p className="text-white/50 text-sm">{callActive ? fmt(callDuration) : "Connecting..."}</p>
               </div>
+              <p className="text-white font-semibold text-lg">{callData?.name || "Voice Call"}</p>
+              <p className="text-white/50 text-sm">{callActive ? fmt(callDuration) : "Connecting..."}</p>
+            </div>
           }
+
+          {/* Duration badge */}
           {isVideo && callActive && (
             <div className="absolute top-4 left-4 bg-black/50 text-white text-xs font-mono px-3 py-1 rounded-full backdrop-blur">
               {fmt(callDuration)}
             </div>
           )}
+
+          {/* 🔴 Recording badge */}
+          {recording && (
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600/90 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              REC {fmt(recDuration)}
+            </div>
+          )}
+
+          {/* ✅ Saved badge */}
+          {recSaved && (
+            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-600/90 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur"
+              style={{ animation: "fadeUp 0.3s ease-out" }}>
+              <span className="material-symbols-outlined text-sm">check_circle</span>
+              Recording saved!
+            </div>
+          )}
+
+          {/* Saving indicator */}
+          {recSaving && (
+            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur">
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Saving...
+            </div>
+          )}
+
           {screenSharing && (
             <div className="absolute top-4 right-4 bg-[#6C5CE7]/80 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">screen_share</span>
@@ -527,27 +677,58 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-4 py-5 bg-[#1a1b23]">
+        <div className="flex items-center justify-center gap-3 py-5 bg-[#1a1b23]">
+          {/* Mute */}
           <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${muted ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
             <span className="material-symbols-outlined text-xl">{muted ? "mic_off" : "mic"}</span>
           </button>
+
+          {/* Camera (video only) */}
           {isVideo && (
             <button onClick={toggleCam} title={camOff ? "Turn on camera" : "Turn off camera"}
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${camOff ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
               <span className="material-symbols-outlined text-xl">{camOff ? "videocam_off" : "videocam"}</span>
             </button>
           )}
+
+          {/* Screen share (video only) */}
           {isVideo && (
             <button onClick={toggleScreenShare} title="Share screen"
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${screenSharing ? "bg-[#6C5CE7] text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
               <span className="material-symbols-outlined text-xl">screen_share</span>
             </button>
           )}
+
+          {/* 🔴 Record button — available on both voice and video calls */}
+          <button
+            onClick={() => recording ? stopRecording(false) : startRecording()}
+            title={recording ? "Stop recording" : "Start recording"}
+            disabled={recSaving}
+            className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-50
+              ${recording ? "bg-red-600 text-white shadow-lg shadow-red-600/40" : "bg-white/10 text-white hover:bg-white/20"}`}>
+            <span className="material-symbols-outlined text-xl">
+              {recording ? "stop_circle" : "radio_button_checked"}
+            </span>
+            {recording && (
+              <span className="absolute inset-0 rounded-full animate-ping bg-red-500 opacity-30" />
+            )}
+          </button>
+
+          {/* End call */}
           <button onClick={endCall} title="End call"
             className="w-14 h-14 rounded-full flex items-center justify-center bg-red-600 text-white shadow-lg shadow-red-500/30 hover:bg-red-700 transition-all hover:scale-105">
             <span className="material-symbols-outlined text-xl">call_end</span>
           </button>
+        </div>
+
+        {/* Recording hint */}
+        <div className="px-5 pb-3 text-center">
+          <p className="text-white/20 text-[10px]">
+            {recording
+              ? `Recording in progress · ${fmt(recDuration)} · stops automatically when call ends`
+              : "Press ● to record this call · saved to your Recordings"}
+          </p>
         </div>
       </div>
     </div>
@@ -665,11 +846,11 @@ function MessageBubble({ msg, isSent, isDark, onReact, onReply, reactions }) {
 // ── Conversation Row ──────────────────────────────────────────────────────────
 function ConversationRow({ contact, unread, lastMsg, active, onClick, isOnline }) {
   const { settings } = useAppSettings();
-  const isDark  = settings.theme === "dark";
-  const textPri = isDark ? "text-white"    : "text-on-surface";
+  const isDark = settings.theme === "dark";
+  const textPri = isDark ? "text-white" : "text-on-surface";
   const textSec = isDark ? "text-white/50" : "text-on-surface-variant";
   const activeCls = isDark ? "bg-white/10" : "bg-surface-container-low";
-  const hoverCls  = isDark ? "hover:bg-white/6" : "hover:bg-surface-container-low/50";
+  const hoverCls = isDark ? "hover:bg-white/6" : "hover:bg-surface-container-low/50";
 
   return (
     <div className="px-4 py-1">
@@ -706,21 +887,29 @@ function ConversationRow({ contact, unread, lastMsg, active, onClick, isOnline }
 // ── Contacts Panel ────────────────────────────────────────────────────────────
 function ContactsPanel({ contacts, onStartChat, isOnline }) {
   const { settings } = useAppSettings();
-  const isDark    = settings.theme === "dark";
-  const panelBg   = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
-  const inputBg   = isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-surface-container-low";
-  const rowHover  = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/60";
-  const textPri   = isDark ? "text-white"    : "text-on-surface";
-  const textSec   = isDark ? "text-white/50" : "text-on-surface-variant";
-  const iconCls   = isDark ? "text-white/40" : "text-on-surface-variant";
+  const isDark = settings.theme === "dark";
+  const panelBg = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
+  const inputBg = isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-surface-container-low";
+  const rowHover = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/60";
+  const textPri = isDark ? "text-white" : "text-on-surface";
+  const textSec = isDark ? "text-white/50" : "text-on-surface-variant";
+  const iconCls = isDark ? "text-white/40" : "text-on-surface-variant";
 
   const [search, setSearch] = useState("");
   const filtered = contacts.filter(c => c.username.toLowerCase().includes(search.toLowerCase()));
-  const online  = filtered.filter(c =>  isOnline(c._id));
+  const online = filtered.filter(c => isOnline(c._id));
   const offline = filtered.filter(c => !isOnline(c._id));
 
+  const { width: panelW, startDrag: startPanelDrag } = useResizablePanel(320);
+
   return (
-    <section className={`w-80 h-full flex flex-col transition-colors duration-300 ${panelBg}`} style={{ animation: "slideIn 0.3s ease-out" }}>
+    <section className={`max-md:w-full h-full flex flex-col transition-colors duration-300 rounded-2xl overflow-hidden relative ${panelBg}`}
+      style={{ width: panelW, minWidth: 240, maxWidth: 520, flexShrink: 0, animation: "slideIn 0.3s ease-out" }}>
+      {/* Drag handle */}
+      <div onMouseDown={startPanelDrag}
+        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 transition-colors
+          ${isDark ? "hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60" : "hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
+        title="Drag to resize" />
       <div className="px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <PanelTitle text="Contacts" />
@@ -768,113 +957,233 @@ function ContactsPanel({ contacts, onStartChat, isOnline }) {
 // ── Calls Panel ───────────────────────────────────────────────────────────────
 function CallsPanel({ contacts, onCall, isOnline }) {
   const { settings } = useAppSettings();
-  const isDark   = settings.theme === "dark";
-  const panelBg  = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
-  const rowHover = isDark ? "hover:bg-white/8"  : "hover:bg-surface-container-low/60";
-  const tabBg    = isDark ? "bg-white/8"         : "bg-surface-container-low";
-  const textPri  = isDark ? "text-white"         : "text-on-surface";
-  const textSec  = isDark ? "text-white/50"      : "text-on-surface-variant";
+  const { token } = useAuth();
+  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+  const isDark = settings.theme === "dark";
+  const panelBg = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
+  const rowHover = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/60";
+  const tabBg = isDark ? "bg-white/8" : "bg-surface-container-low";
+  const textPri = isDark ? "text-white" : "text-on-surface";
+  const textSec = isDark ? "text-white/50" : "text-on-surface-variant";
+
   const [tab, setTab] = useState("recent");
+  const [recordings, setRecordings] = useState([]);
+  const [recLoading, setRecLoading] = useState(false);
+
   const callLog = [
-    { id:1, direction:"incoming", duration:"5:23",  time:new Date(Date.now()-7200000) },
-    { id:2, direction:"outgoing", duration:"2:10",  time:new Date(Date.now()-18000000) },
-    { id:3, direction:"missed",   duration:null,    time:new Date(Date.now()-86400000) },
-    { id:4, direction:"incoming", duration:"12:05", time:new Date(Date.now()-172800000) },
+    { id: 1, direction: "incoming", duration: "5:23", time: new Date(Date.now() - 7200000) },
+    { id: 2, direction: "outgoing", duration: "2:10", time: new Date(Date.now() - 18000000) },
+    { id: 3, direction: "missed", duration: null, time: new Date(Date.now() - 86400000) },
+    { id: 4, direction: "incoming", duration: "12:05", time: new Date(Date.now() - 172800000) },
   ];
-  const dirIcon  = { incoming:"call_received", outgoing:"call_made", missed:"call_missed" };
-  const dirColor = { incoming:"text-green-500", outgoing:"text-blue-400", missed:"text-red-400" };
+  const dirIcon = { incoming: "call_received", outgoing: "call_made", missed: "call_missed" };
+  const dirColor = { incoming: "text-green-500", outgoing: "text-blue-400", missed: "text-red-400" };
+
+  // Fetch recordings when tab switches to "recordings"
+  useEffect(() => {
+    if (tab !== "recordings") return;
+    setRecLoading(true);
+    fetch(`${API_URL}/api/recordings`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setRecordings(d.recordings || []))
+      .catch(() => setRecordings([]))
+      .finally(() => setRecLoading(false));
+  }, [tab]); // eslint-disable-line
+
+  const deleteRecording = async (filename) => {
+    if (!window.confirm("Delete this recording?")) return;
+    await fetch(`${API_URL}/api/recordings/${filename}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setRecordings(prev => prev.filter(r => r.filename !== filename));
+  };
+
+  const fmtSize = bytes => bytes < 1024 * 1024
+    ? (bytes / 1024).toFixed(1) + " KB"
+    : (bytes / (1024 * 1024)).toFixed(1) + " MB";
+
+  const fmtDate = iso => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const { width: panelW, startDrag: startPanelDrag } = useResizablePanel(320);
 
   return (
-    <section className={`w-80 h-full flex flex-col transition-colors duration-300 ${panelBg}`} style={{ animation: "slideIn 0.3s ease-out" }}>
-      <div className="px-6 py-6">
+    <section className={`max-md:w-full h-full flex flex-col transition-colors duration-300 rounded-2xl overflow-hidden relative ${panelBg}`}
+      style={{ width: panelW, minWidth: 240, maxWidth: 520, flexShrink: 0, animation: "slideIn 0.3s ease-out" }}>
+      {/* Drag handle */}
+      <div onMouseDown={startPanelDrag}
+        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 transition-colors
+          ${isDark ? "hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60" : "hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
+        title="Drag to resize" />
+      <div className="px-6 py-6 shrink-0">
         <div className="flex items-center justify-between mb-4">
           <PanelTitle text="Calls" />
-          <div className={`flex items-center gap-1 rounded-full p-1 ${tabBg}`}>
-            {["recent","contacts"].map(t => (
+          {/* 3-tab switcher */}
+          <div className={`flex items-center gap-0.5 rounded-full p-1 ${tabBg}`}>
+            {["recent", "contacts", "recordings"].map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${tab===t ? "bg-[#6C5CE7] text-white shadow-sm" : isDark ? "text-white/50 hover:text-white" : "text-on-surface-variant hover:text-on-surface"}`}>
-                {t[0].toUpperCase()+t.slice(1)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all capitalize
+                  ${tab === t ? "bg-[#6C5CE7] text-white shadow-sm" : isDark ? "text-white/50 hover:text-white" : "text-on-surface-variant hover:text-on-surface"}`}>
+                {t === "recordings" ? "🔴" : t[0].toUpperCase() + t.slice(1)}
               </button>
             ))}
           </div>
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4">
-        {tab==="recent" ? (<>
+        {/* ── Recent tab ───────────────────────────────────────────────── */}
+        {tab === "recent" && (<>
           <p className={`text-[10px] font-extrabold tracking-widest uppercase px-2 mb-3 ${textSec}`}>Recent calls</p>
-          {callLog.map((call,i) => {
-            const c = contacts[i%Math.max(contacts.length,1)];
-            if(!c) return null;
+          {callLog.map((call, i) => {
+            const c = contacts[i % Math.max(contacts.length, 1)];
+            if (!c) return null;
             return (
               <div key={call.id} className={`flex items-center gap-3 p-3 rounded-2xl transition-all group mb-1 ${rowHover}`}>
-                <div className="relative"><Avatar user={c} size="md" />{isOnline(c._id)&&<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />}</div>
+                <div className="relative"><Avatar user={c} size="md" />{isOnline(c._id) && <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />}</div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold ${textPri}`}>{c.username}</p>
                   <div className="flex items-center gap-1.5">
                     <span className={`material-symbols-outlined text-xs ${dirColor[call.direction]}`}>{dirIcon[call.direction]}</span>
-                    <span className={`text-xs ${call.direction==="missed"?"text-red-400":textSec}`}>{call.direction} · {call.duration||"Missed"} · {timeAgo(call.time)}</span>
+                    <span className={`text-xs ${call.direction === "missed" ? "text-red-400" : textSec}`}>{call.direction} · {call.duration || "Missed"} · {timeAgo(call.time)}</span>
                   </div>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => onCall(c,"voice")} className="w-8 h-8 bg-green-500/15 text-green-500 rounded-full flex items-center justify-center hover:bg-green-500/25"><span className="material-symbols-outlined text-sm">call</span></button>
-                  <button onClick={() => onCall(c,"video")} className="w-8 h-8 bg-[#6C5CE7]/15 text-[#6C5CE7] rounded-full flex items-center justify-center hover:bg-[#6C5CE7]/25"><span className="material-symbols-outlined text-sm">videocam</span></button>
+                  <button onClick={() => onCall(c, "voice")} className="w-8 h-8 bg-green-500/15 text-green-500 rounded-full flex items-center justify-center hover:bg-green-500/25"><span className="material-symbols-outlined text-sm">call</span></button>
+                  <button onClick={() => onCall(c, "video")} className="w-8 h-8 bg-[#6C5CE7]/15 text-[#6C5CE7] rounded-full flex items-center justify-center hover:bg-[#6C5CE7]/25"><span className="material-symbols-outlined text-sm">videocam</span></button>
                 </div>
               </div>
             );
           })}
-        </>) : (<>
+        </>)}
+
+        {/* ── Contacts tab ─────────────────────────────────────────────── */}
+        {tab === "contacts" && (<>
           <p className={`text-[10px] font-extrabold tracking-widest uppercase px-2 mb-3 ${textSec}`}>Call a contact</p>
           {contacts.map(c => (
             <div key={c._id} className={`flex items-center gap-3 p-3 rounded-2xl transition-all group mb-1 ${rowHover}`}>
-              <div className="relative"><Avatar user={c} size="md" />{isOnline(c._id)&&<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />}</div>
-              <div className="flex-1 min-w-0"><p className={`text-sm font-semibold ${textPri}`}>{c.username}</p><p className={`text-xs ${isOnline(c._id)?"text-green-500":textSec}`}>{isOnline(c._id)?"Online":"Offline"}</p></div>
+              <div className="relative"><Avatar user={c} size="md" />{isOnline(c._id) && <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />}</div>
+              <div className="flex-1 min-w-0"><p className={`text-sm font-semibold ${textPri}`}>{c.username}</p><p className={`text-xs ${isOnline(c._id) ? "text-green-500" : textSec}`}>{isOnline(c._id) ? "Online" : "Offline"}</p></div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => onCall(c,"voice")} className="w-8 h-8 bg-green-500/15 text-green-500 rounded-full flex items-center justify-center hover:bg-green-500/25"><span className="material-symbols-outlined text-sm">call</span></button>
-                <button onClick={() => onCall(c,"video")} className="w-8 h-8 bg-[#6C5CE7]/15 text-[#6C5CE7] rounded-full flex items-center justify-center hover:bg-[#6C5CE7]/25"><span className="material-symbols-outlined text-sm">videocam</span></button>
+                <button onClick={() => onCall(c, "voice")} className="w-8 h-8 bg-green-500/15 text-green-500 rounded-full flex items-center justify-center hover:bg-green-500/25"><span className="material-symbols-outlined text-sm">call</span></button>
+                <button onClick={() => onCall(c, "video")} className="w-8 h-8 bg-[#6C5CE7]/15 text-[#6C5CE7] rounded-full flex items-center justify-center hover:bg-[#6C5CE7]/25"><span className="material-symbols-outlined text-sm">videocam</span></button>
               </div>
             </div>
           ))}
         </>)}
+
+        {/* ── Recordings tab ───────────────────────────────────────────── */}
+        {tab === "recordings" && (
+          <>
+            <div className="flex items-center gap-2 px-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+              <p className={`text-[10px] font-extrabold tracking-widest uppercase ${textSec}`}>
+                Call Recordings ({recordings.length})
+              </p>
+            </div>
+
+            {recLoading && (
+              <div className="flex items-center justify-center py-12">
+                <svg className="w-6 h-6 text-[#6C5CE7] animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            )}
+
+            {!recLoading && recordings.length === 0 && (
+              <div className="text-center py-14">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-red-400">radio_button_checked</span>
+                </div>
+                <p className={`text-sm font-semibold mb-1 ${textPri}`}>No recordings yet</p>
+                <p className={`text-xs ${textSec}`}>Press ● during a call to record it</p>
+              </div>
+            )}
+
+            {!recLoading && recordings.map(rec => (
+              <div key={rec.filename}
+                className={`mb-3 p-3 rounded-2xl border transition-all ${isDark ? "bg-white/5 border-white/8 hover:bg-white/8" : "bg-white border-outline-variant/30 hover:bg-surface-container-low"}`}
+                style={{ animation: "fadeUp 0.2s ease-out" }}>
+
+                {/* Header row */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0
+                    ${rec.callType === "video" ? "bg-[#6C5CE7]/15" : "bg-red-500/15"}`}>
+                    <span className={`material-symbols-outlined text-sm ${rec.callType === "video" ? "text-[#6C5CE7]" : "text-red-400"}`}>
+                      {rec.callType === "video" ? "videocam" : "mic"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold truncate ${textPri}`}>{rec.contactName}</p>
+                    <p className={`text-[10px] ${textSec}`}>{fmtDate(rec.createdAt)} · {rec.duration} · {fmtSize(rec.fileSize)}</p>
+                  </div>
+                  <button onClick={() => deleteRecording(rec.filename)} title="Delete recording"
+                    className={`p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 hover:bg-red-500/15 hover:text-red-400 ${textSec}`}
+                    style={{ opacity: 1 }}>
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                  </button>
+                </div>
+
+                {/* Audio player */}
+                <audio
+                  controls
+                  src={`${API_URL}${rec.fileUrl}`}
+                  className="w-full h-8 rounded-lg"
+                  style={{ accentColor: "#6C5CE7" }}
+                />
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </section>
   );
 }
 
 // ── Stories Panel ─────────────────────────────────────────────────────────────
-const STORY_COLORS = ["from-pink-400 to-purple-600","from-orange-400 to-pink-500","from-blue-400 to-cyan-500","from-green-400 to-teal-500","from-yellow-400 to-orange-500","from-purple-400 to-indigo-600"];
-const STORY_TEXTS  = ["Just shipped a new feature! 🚀","Coffee & code ☕","Beautiful day outside 🌤️","Working on something big... 👀","Team lunch was amazing 🍕","Weekend vibes ✨"];
+const STORY_COLORS = ["from-pink-400 to-purple-600", "from-orange-400 to-pink-500", "from-blue-400 to-cyan-500", "from-green-400 to-teal-500", "from-yellow-400 to-orange-500", "from-purple-400 to-indigo-600"];
+const STORY_TEXTS = ["Just shipped a new feature! 🚀", "Coffee & code ☕", "Beautiful day outside 🌤️", "Working on something big... 👀", "Team lunch was amazing 🍕", "Weekend vibes ✨"];
 
 function StoriesPanel({ contacts, currentUser }) {
   const { settings } = useAppSettings();
-  const isDark    = settings.theme === "dark";
-  const panelBg   = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
-  const rowHover  = isDark ? "hover:bg-white/8"  : "hover:bg-surface-container-low/60";
-  const addBoxBg  = isDark ? "bg-white/8"         : "bg-surface-container-low";
-  const textPri   = isDark ? "text-white"         : "text-on-surface";
-  const textSec   = isDark ? "text-white/50"      : "text-on-surface-variant";
-  const inputCls  = isDark ? "text-white placeholder:text-white/30" : "text-on-surface placeholder:text-on-surface-variant/50";
+  const isDark = settings.theme === "dark";
+  const panelBg = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
+  const rowHover = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/60";
+  const addBoxBg = isDark ? "bg-white/8" : "bg-surface-container-low";
+  const textPri = isDark ? "text-white" : "text-on-surface";
+  const textSec = isDark ? "text-white/50" : "text-on-surface-variant";
+  const inputCls = isDark ? "text-white placeholder:text-white/30" : "text-on-surface placeholder:text-on-surface-variant/50";
   const [selectedStory, setSelectedStory] = useState(null);
   const [storyProgress, setStoryProgress] = useState(0);
   const [myStory, setMyStory] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [storyText, setStoryText] = useState("");
-  const stories = contacts.map((c,i) => ({ user:c, text:STORY_TEXTS[i%STORY_TEXTS.length], color:STORY_COLORS[i%STORY_COLORS.length], time:new Date(Date.now()-Math.random()*72000000), views:Math.floor(Math.random()*50+5) }));
+  const stories = contacts.map((c, i) => ({ user: c, text: STORY_TEXTS[i % STORY_TEXTS.length], color: STORY_COLORS[i % STORY_COLORS.length], time: new Date(Date.now() - Math.random() * 72000000), views: Math.floor(Math.random() * 50 + 5) }));
 
   useEffect(() => {
-    if(!selectedStory) return;
+    if (!selectedStory) return;
     setStoryProgress(0);
-    const iv = setInterval(() => setStoryProgress(p => { if(p>=100){setSelectedStory(null);return 0;} return p+2; }), 100);
+    const iv = setInterval(() => setStoryProgress(p => { if (p >= 100) { setSelectedStory(null); return 0; } return p + 2; }), 100);
     return () => clearInterval(iv);
-  },[selectedStory]);
+  }, [selectedStory]);
 
-  const postStory = () => { if(!storyText.trim()) return; setMyStory({text:storyText,time:new Date(),color:STORY_COLORS[0]}); setStoryText(""); setAddOpen(false); };
+  const postStory = () => { if (!storyText.trim()) return; setMyStory({ text: storyText, time: new Date(), color: STORY_COLORS[0] }); setStoryText(""); setAddOpen(false); };
+
+  const { width: panelW, startDrag: startPanelDrag } = useResizablePanel(320);
 
   return (
-    <section className={`w-80 h-full flex flex-col transition-colors duration-300 ${panelBg}`} style={{ animation: "slideIn 0.3s ease-out" }}>
+    <section className={`max-md:w-full h-full flex flex-col transition-colors duration-300 rounded-2xl overflow-hidden relative ${panelBg}`}
+      style={{ width: panelW, minWidth: 240, maxWidth: 520, flexShrink: 0, animation: "slideIn 0.3s ease-out" }}>
+      {/* Drag handle */}
+      <div onMouseDown={startPanelDrag}
+        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 transition-colors
+          ${isDark ? "hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60" : "hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
+        title="Drag to resize" />
       {selectedStory && (
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center" onClick={() => setSelectedStory(null)}>
           <div className={`w-80 h-[520px] rounded-3xl bg-gradient-to-b ${selectedStory.color} relative overflow-hidden shadow-2xl`} onClick={e => e.stopPropagation()}>
-            <div className="absolute top-3 left-3 right-3 h-0.5 bg-white/30 rounded-full z-10"><div className="h-full bg-white rounded-full transition-all" style={{width:storyProgress+"%"}} /></div>
+            <div className="absolute top-3 left-3 right-3 h-0.5 bg-white/30 rounded-full z-10"><div className="h-full bg-white rounded-full transition-all" style={{ width: storyProgress + "%" }} /></div>
             <div className="absolute top-8 left-4 right-4 flex items-center gap-2 z-10">
               <Avatar user={selectedStory.user} size="sm" />
               <div><p className="text-white font-semibold text-sm">{selectedStory.user.username}</p><p className="text-white/70 text-[10px]">{timeAgo(selectedStory.time)}</p></div>
@@ -905,65 +1214,97 @@ function StoriesPanel({ contacts, currentUser }) {
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4">
         <p className={`text-[10px] font-extrabold tracking-widest uppercase px-2 mb-3 ${textSec}`}>Your story</p>
-        <div className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all mb-3 ${rowHover}`} onClick={() => myStory && setSelectedStory({user:{username:"You",avatar:currentUser?.avatar},...myStory})}>
+        <div className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all mb-3 ${rowHover}`} onClick={() => myStory && setSelectedStory({ user: { username: "You", avatar: currentUser?.avatar }, ...myStory })}>
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center">{myStory?<Avatar user={currentUser} size="md"/>:<span className="material-symbols-outlined text-white text-xl">add</span>}</div>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center">{myStory ? <Avatar user={currentUser} size="md" /> : <span className="material-symbols-outlined text-white text-xl">add</span>}</div>
             {!myStory && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#6C5CE7] rounded-full border-2 border-white flex items-center justify-center"><span className="material-symbols-outlined text-white text-[10px]">add</span></div>}
           </div>
-          <div><p className={`text-sm font-semibold ${textPri}`}>Add to story</p><p className={`text-xs ${textSec}`}>{myStory?"Posted "+timeAgo(myStory.time):"Share a moment"}</p></div>
+          <div><p className={`text-sm font-semibold ${textPri}`}>Add to story</p><p className={`text-xs ${textSec}`}>{myStory ? "Posted " + timeAgo(myStory.time) : "Share a moment"}</p></div>
         </div>
         <p className={`text-[10px] font-extrabold tracking-widest uppercase px-2 mb-3 ${textSec}`}>Recent</p>
-        {stories.map((story,i) => (
-          <div key={story.user._id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all group mb-1 ${rowHover}`} style={{animation:`fadeUp ${0.1+i*0.05}s ease-out`}} onClick={() => setSelectedStory(story)}>
-            <div className="p-0.5 rounded-2xl shrink-0" style={{background:"linear-gradient(135deg,#6C5CE7,#a19afd,#f472b6)"}}><Avatar user={story.user} size="md" /></div>
+        {stories.map((story, i) => (
+          <div key={story.user._id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all group mb-1 ${rowHover}`} style={{ animation: `fadeUp ${0.1 + i * 0.05}s ease-out` }} onClick={() => setSelectedStory(story)}>
+            <div className="p-0.5 rounded-2xl shrink-0" style={{ background: "linear-gradient(135deg,#6C5CE7,#a19afd,#f472b6)" }}><Avatar user={story.user} size="md" /></div>
             <div className="flex-1 min-w-0"><p className={`text-sm font-semibold ${textPri}`}>{story.user.username}</p><p className={`text-xs truncate ${textSec}`}>{story.text}</p></div>
             <span className={`text-[10px] shrink-0 ${textSec}`}>{timeAgo(story.time)}</span>
           </div>
         ))}
-        {contacts.length===0 && <div className="text-center py-12"><span className={`material-symbols-outlined text-4xl opacity-40 ${textSec}`}>amp_stories</span><p className={`text-sm mt-2 ${textSec}`}>No stories yet</p></div>}
+        {contacts.length === 0 && <div className="text-center py-12"><span className={`material-symbols-outlined text-4xl opacity-40 ${textSec}`}>amp_stories</span><p className={`text-sm mt-2 ${textSec}`}>No stories yet</p></div>}
       </div>
     </section>
   );
 }
 
-// ── Feature 4: AI Bot Panel ────────────────────────────────────────────────────
+// ── Gemini AI Bot Panel ───────────────────────────────────────────────────────
 function AIBotPanel({ isDark, textPrimary, textSecondary }) {
+  const { token } = useAuth();
+  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+
   const [aiMessages, setAiMessages] = useState([
-    { id: 1, role: "assistant", content: "Hi! I'm ChatVerse AI 🤖 Ask me anything — I can help you draft messages, answer questions, translate text, or just have a chat!" }
+    { id: 1, role: "assistant", content: "Hi! I'm ChatVerse AI ✨ powered by Google Gemini. Ask me anything — draft messages, translate, summarize, or just chat!" }
   ]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem("cv_gemini_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("cv_gemini_key"));
+  const [keyDraft, setKeyDraft] = useState("");
   const aiBottomRef = useRef(null);
 
   useEffect(() => { aiBottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
 
+  const saveKey = () => {
+    const k = keyDraft.trim();
+    if (!k) return;
+    localStorage.setItem("cv_gemini_key", k);
+    setApiKey(k);
+    setShowKeyInput(false);
+    setKeyDraft("");
+  };
+
   const sendToAI = async () => {
     const q = aiInput.trim();
     if (!q || aiLoading) return;
+    if (!apiKey) { setShowKeyInput(true); return; }
+
     setAiInput("");
-    const userMsg = { id: Date.now(), role: "user", content: q };
-    setAiMessages(prev => [...prev, userMsg]);
+    const updatedMessages = [...aiMessages, { id: Date.now(), role: "user", content: q }];
+    setAiMessages(updatedMessages);
     setAiLoading(true);
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      // Call our backend proxy — avoids CORS entirely
+      const res = await fetch(`${API_URL}/api/ai/gemini`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: "You are ChatVerse AI, a helpful assistant built into a chat application. Be friendly, concise, and useful. Keep responses short and conversational unless asked for detail.",
-          messages: [
-            ...aiMessages.filter(m => m.role !== "system").map(m => ({ role: m.role, content: m.content })),
-            { role: "user", content: q }
-          ]
+          apiKey,
+          messages: updatedMessages
+            .filter(m => m.role !== "system")
+            .map(m => ({ role: m.role, content: m.content })),
         }),
       });
+
       const data = await res.json();
-      const reply = data.content?.[0]?.text || "Sorry, I couldn't process that.";
-      setAiMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: reply }]);
-    } catch {
-      setAiMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: "⚠️ Connection error. Please try again." }]);
+
+      if (!res.ok) {
+        // 401 = bad API key → clear it and prompt user to re-enter
+        if (res.status === 401) {
+          localStorage.removeItem("cv_gemini_key");
+          setApiKey("");
+          setShowKeyInput(true);
+        }
+        throw new Error(data.error || "Server error");
+      }
+
+      setAiMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: data.reply }]);
+    } catch (err) {
+      setAiMessages(prev => [...prev, {
+        id: Date.now() + 1, role: "assistant",
+        content: `⚠️ ${err.message || "Connection error. Please try again."}`,
+      }]);
     } finally {
       setAiLoading(false);
     }
@@ -972,76 +1313,1032 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
   const panelBg = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
   const inputBg = isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-surface-container-low";
 
+  const geminiGrad = "linear-gradient(135deg,#4285f4,#0f9d58,#f4b400,#db4437)";
+  const geminiSolid = "linear-gradient(135deg,#4285f4,#34a853)";
+
+  const quickPrompts = ["Draft a message", "Translate text", "Summarize chat", "Fun fact", "Write a poem", "Explain simply"];
+
+  const { width: panelW, startDrag: startPanelDrag } = useResizablePanel(320);
+
   return (
-    <section className={`w-80 h-full flex flex-col transition-colors duration-300 ${panelBg}`} style={{ animation: "slideIn 0.3s ease-out" }}>
-      {/* Header */}
-      <div className="px-6 py-5 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center shadow-lg shadow-[#6C5CE7]/30">
-            <span className="material-symbols-outlined text-white text-lg">smart_toy</span>
+    <section className={`max-md:w-full h-full flex flex-col transition-colors duration-300 rounded-2xl overflow-hidden relative ${panelBg}`}
+      style={{ width: panelW, minWidth: 240, maxWidth: 520, flexShrink: 0, animation: "slideIn 0.3s ease-out" }}>
+      {/* Drag handle */}
+      <div onMouseDown={startPanelDrag}
+        className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 transition-colors
+          ${isDark ? "hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60" : "hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
+        title="Drag to resize" />
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="px-5 py-4 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Gemini-style icon */}
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shrink-0"
+              style={{ background: geminiSolid, boxShadow: "0 4px 16px rgba(66,133,244,0.4)" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" fill="white" opacity="0.9" />
+                <path d="M12 6L10.5 10.5L6 12L10.5 13.5L12 18L13.5 13.5L18 12L13.5 10.5L12 6Z" fill="white" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold" style={{ background: geminiGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                ChatVerse AI
+              </h1>
+              <p className={`text-[10px] ${isDark ? "text-white/40" : "text-on-surface-variant"}`}>
+                Powered by Google Gemini
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-extrabold" style={{ background:"linear-gradient(135deg,#6C5CE7,#a19afd)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>
-              ChatVerse AI
-            </h1>
-            <p className={`text-[10px] ${isDark ? "text-white/40" : "text-on-surface-variant"}`}>Always online · Powered by Claude</p>
-          </div>
+          {/* Key settings button */}
+          <button onClick={() => setShowKeyInput(v => !v)} title="API Key settings"
+            className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-white/10 text-white/40" : "hover:bg-surface-container text-on-surface-variant"}`}>
+            <span className="material-symbols-outlined text-sm">key</span>
+          </button>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* ── API Key input panel ─────────────────────────────────────────── */}
+      {showKeyInput && (
+        <div className={`mx-4 mb-3 p-3 rounded-2xl border shrink-0 ${isDark ? "bg-white/5 border-white/10" : "bg-surface-container-low border-outline-variant/30"}`}
+          style={{ animation: "fadeUp 0.2s ease-out" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" fill="#4285f4" /></svg>
+            <p className={`text-[11px] font-bold ${isDark ? "text-white/70" : "text-on-surface"}`}>Gemini API Key</p>
+          </div>
+          <p className={`text-[10px] mb-2 leading-relaxed ${isDark ? "text-white/40" : "text-on-surface-variant"}`}>
+            Get your free key at{" "}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer"
+              className="text-[#4285f4] hover:underline">aistudio.google.com</a>
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={keyDraft}
+              onChange={e => setKeyDraft(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && saveKey()}
+              placeholder="AIza..."
+              className={`flex-1 rounded-xl py-2 px-3 text-xs outline-none border transition-all focus:ring-2 focus:ring-[#4285f4]
+                ${isDark ? "bg-white/10 border-white/10 text-white placeholder:text-white/25" : "bg-white border-outline-variant text-on-surface"}`}
+            />
+            <button onClick={saveKey}
+              className="px-3 py-2 rounded-xl text-white text-xs font-semibold transition-all hover:opacity-90"
+              style={{ background: geminiSolid }}>
+              Save
+            </button>
+          </div>
+          {apiKey && (
+            <button onClick={() => { localStorage.removeItem("cv_gemini_key"); setApiKey(""); setShowKeyInput(true); }}
+              className={`mt-2 text-[10px] ${isDark ? "text-white/30 hover:text-red-400" : "text-on-surface-variant hover:text-red-500"} transition-colors`}>
+              Remove saved key
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Messages ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-2 flex flex-col gap-3">
         {aiMessages.map(m => (
           <div key={m.id} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && (
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center shrink-0 mt-1">
-                <span className="material-symbols-outlined text-white text-xs">smart_toy</span>
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-1"
+                style={{ background: geminiSolid }}>
+                <svg width="12" height="12" viewBox="0 0 24 24">
+                  <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" fill="white" />
+                </svg>
               </div>
             )}
-            <div className={`max-w-[85%] px-3 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role === "user"
-              ? "text-white rounded-br-sm" : isDark ? "bg-white/10 text-white rounded-bl-sm" : "bg-white text-on-surface shadow-sm rounded-bl-sm"}`}
-              style={m.role === "user" ? { background:"linear-gradient(135deg,#6C5CE7,#a19afd)" } : {}}>
+            <div className={`max-w-[85%] px-3 py-2.5 rounded-2xl text-sm leading-relaxed
+              ${m.role === "user"
+                ? "text-white rounded-br-sm"
+                : isDark ? "bg-white/10 text-white rounded-bl-sm" : "bg-white text-on-surface shadow-sm rounded-bl-sm"}`}
+              style={m.role === "user" ? { background: geminiSolid } : {}}>
               {m.content}
             </div>
           </div>
         ))}
+
         {aiLoading && (
           <div className="flex gap-2 justify-start">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-white text-xs">smart_toy</span>
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: geminiSolid }}>
+              <svg width="12" height="12" viewBox="0 0 24 24">
+                <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" fill="white" />
+              </svg>
             </div>
             <div className={`px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 ${isDark ? "bg-white/10" : "bg-white shadow-sm"}`}>
-              {[0,1,2].map(i => <span key={i} className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark?"bg-white/40":"bg-[#6C5CE7]/40"}`} style={{animationDelay:i*0.15+"s"}} />)}
+              {[0, 1, 2].map(i => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? "bg-white/40" : "bg-[#4285f4]/40"}`}
+                  style={{ animationDelay: i * 0.15 + "s" }} />
+              ))}
             </div>
           </div>
         )}
         <div ref={aiBottomRef} />
       </div>
 
-      {/* Quick prompts */}
+      {/* ── Quick prompts ───────────────────────────────────────────────── */}
       <div className="px-4 pb-2 flex gap-1.5 flex-wrap shrink-0">
-        {["Draft a message", "Translate text", "Summarize chat", "Fun fact"].map(p => (
-          <button key={p} onClick={() => { setAiInput(p); }}
-            className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-colors ${isDark?"border-white/10 text-white/50 hover:bg-white/10":"border-outline-variant text-on-surface-variant hover:bg-surface-container"}`}>
+        {quickPrompts.map(p => (
+          <button key={p} onClick={() => setAiInput(p)}
+            className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-colors
+              ${isDark ? "border-white/10 text-white/50 hover:bg-white/10 hover:border-[#4285f4]/40" : "border-outline-variant text-on-surface-variant hover:bg-surface-container"}`}>
             {p}
           </button>
         ))}
       </div>
 
-      {/* Input */}
-      <div className={`p-3 border-t flex items-center gap-2 shrink-0 ${isDark?"border-white/5":"border-outline-variant/20"}`}>
+      {/* ── Input bar ───────────────────────────────────────────────────── */}
+      <div className={`p-3 border-t flex items-center gap-2 shrink-0 ${isDark ? "border-white/5" : "border-outline-variant/20"}`}>
         <input
-          className={`flex-1 rounded-full py-2.5 px-4 text-sm outline-none focus:ring-2 focus:ring-[#6C5CE7] border-none transition-all ${inputBg}`}
-          placeholder="Ask anything..."
-          value={aiInput} onChange={e => setAiInput(e.target.value)}
-          onKeyDown={e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToAI();} }} />
+          className={`flex-1 rounded-full py-2.5 px-4 text-sm outline-none focus:ring-2 focus:ring-[#4285f4] border-none transition-all ${inputBg}`}
+          placeholder={apiKey ? "Ask Gemini anything..." : "Add API key to start →"}
+          value={aiInput}
+          onChange={e => setAiInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAI(); } }}
+        />
         <button onClick={sendToAI} disabled={!aiInput.trim() || aiLoading}
           className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-40 transition-all hover:scale-105 active:scale-95"
-          style={{ background:"linear-gradient(135deg,#6C5CE7,#a19afd)" }}>
+          style={{ background: geminiSolid }}>
           <span className="material-symbols-outlined text-sm">send</span>
         </button>
       </div>
     </section>
+  );
+}
+
+// ── Go Live Panel ─────────────────────────────────────────────────────────────
+function GoLivePanel({ contacts, currentUser, isDark, textPrimary, textSecondary, chatBg, panelBg, socket, liveSession, setLiveSession }) {
+  const [mode, setMode] = useState("idle");
+  const [liveType, setLiveType] = useState(null);
+  const [title, setTitle] = useState("");
+  const [viewers, setViewers] = useState([]);
+  const [liveMsg, setLiveMsg] = useState("");
+  const [liveChat, setLiveChat] = useState([]);
+  const [searchQ, setSearchQ] = useState("");
+  const [liveTime, setLiveTime] = useState(0);
+  const [viewerTab, setViewerTab] = useState("viewers");
+  const [sessionRole, setSessionRole] = useState(null);
+  const [joinedViewerIds, setJoinedViewerIds] = useState([]);
+  const [joiningLive, setJoiningLive] = useState(false);
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const hostPeersRef = useRef({});
+  const viewerPeerRef = useRef(null);
+  const timerRef = useRef(null);
+  const chatBottomRef = useRef(null);
+
+  // Refs to avoid stale closure in socket handlers
+  const sessionRoleRef = useRef(null);
+  const liveTypeRef = useRef(null);
+  const liveSessionRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { sessionRoleRef.current = sessionRole; }, [sessionRole]);
+  useEffect(() => { liveTypeRef.current = liveType; }, [liveType]);
+  useEffect(() => { liveSessionRef.current = liveSession; }, [liveSession]);
+
+  const fmt = (s) => `${Math.floor(s / 3600).toString().padStart(2, "0")}:${Math.floor((s % 3600) / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+  const cardBg = isDark ? "bg-white/5 border-white/8" : "bg-white border-outline-variant/30";
+  const inputCls = isDark
+    ? "bg-white/10 text-white placeholder:text-white/40 border-transparent focus:bg-white/20"
+    : "bg-slate-100 text-slate-800 placeholder:text-slate-500 border-transparent focus:bg-slate-200";
+  const rowHover = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/70";
+  const filtered = contacts.filter((c) => c.username.toLowerCase().includes(searchQ.toLowerCase()));
+  const allowedContacts = contacts.filter((c) => viewers.includes(c._id));
+  const joinedContacts = contacts.filter((c) => joinedViewerIds.includes(c._id));
+  const isViewingInvite = liveSession && liveSession.hostId !== currentUser?._id && sessionRole !== "host";
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [liveChat]);
+
+  const attachVideoStream = useCallback(async (mediaStream, target) => {
+    const el = target || videoRef.current;
+    if (!el || !mediaStream) return;
+
+    console.log("🎥 Attaching video stream:", mediaStream.id, "to", el.id || "unnamed element");
+
+    if (el.srcObject !== mediaStream) {
+      el.srcObject = mediaStream;
+    }
+
+    // Set muted directly on the DOM node — React's muted prop is unreliable
+    const isHost = sessionRoleRef.current === "host";
+    el.muted = isHost;
+    el.autoplay = true;
+    el.playsInline = true;
+
+    try {
+      await el.play();
+      console.log("▶️ Video playing successfully");
+    } catch (err) {
+      console.warn("⚠️ Autoplay failed, trying muted...", err);
+      // If unmuted play failed for viewer, try muted play (browser requirement)
+      if (!isHost) {
+        el.muted = true;
+        try {
+          await el.play();
+          console.log("▶️ Muted video playing successfully");
+        } catch (e2) {
+          console.error("❌ Muted play also failed", e2);
+        }
+      }
+      // Fallback: play on metadata load
+      el.onloadedmetadata = () => {
+        console.log("📊 Metadata loaded, attempting play");
+        el.play().catch((e) => console.error("❌ Final play attempt failed", e));
+      };
+    }
+  }, []);
+
+  const bindVideoRef = useCallback((node) => {
+    videoRef.current = node;
+    if (!node) return;
+
+    // Set muted directly — React's muted prop doesn't sync reliably
+    node.muted = sessionRoleRef.current === "host";
+
+    if (sessionRoleRef.current === "host" && streamRef.current) {
+      attachVideoStream(streamRef.current, node);
+      return;
+    }
+
+    if (sessionRoleRef.current === "viewer" && remoteStreamRef.current) {
+      attachVideoStream(remoteStreamRef.current, node);
+    }
+  }, [attachVideoStream]);
+
+  const clearVideoStream = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.pause?.();
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const destroyHostPeers = useCallback(() => {
+    Object.values(hostPeersRef.current).forEach((peer) => peer?.destroy?.());
+    hostPeersRef.current = {};
+  }, []);
+
+  const destroyViewerPeer = useCallback(() => {
+    viewerPeerRef.current?.destroy?.();
+    viewerPeerRef.current = null;
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }, []);
+
+  const stopRemoteStream = useCallback(() => {
+    remoteStreamRef.current?.getTracks?.().forEach((track) => track.stop());
+    remoteStreamRef.current = null;
+  }, []);
+
+  const resetViewerState = useCallback((message) => {
+    destroyViewerPeer();
+    stopRemoteStream();
+    clearVideoStream();
+    setJoiningLive(false);
+    setSessionRole(null);
+    setMode("idle");
+    setLiveType(null);
+    setLiveTime(0);
+    setJoinedViewerIds([]);
+    setLiveMsg("");
+    setLiveChat(message ? [{ id: Date.now(), user: "System", text: message, ts: new Date() }] : []);
+  }, [clearVideoStream, destroyViewerPeer, stopRemoteStream]);
+
+  const resetHostState = useCallback(() => {
+    destroyHostPeers();
+    stopCamera();
+    clearVideoStream();
+    setSessionRole(null);
+    setMode("idle");
+    setLiveType(null);
+    setTitle("");
+    setViewers([]);
+    setJoinedViewerIds([]);
+    setLiveMsg("");
+    setLiveChat([]);
+    setLiveTime(0);
+    setViewerTab("viewers");
+  }, [clearVideoStream, destroyHostPeers, stopCamera]);
+
+  // Start camera AFTER the video element mounts (mode becomes live-video)
+  useEffect(() => {
+    if (mode === "live-video" && sessionRoleRef.current === "host" && !streamRef.current) {
+      startCamera();
+    }
+    if (mode === "viewer-video" && remoteStreamRef.current) {
+      attachVideoStream(remoteStreamRef.current);
+    }
+  }, [mode]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!mode || (mode !== "live-chat" && mode !== "live-video" && mode !== "viewer-chat" && mode !== "viewer-video")) {
+      clearInterval(timerRef.current);
+      return;
+    }
+
+    setLiveTime(0);
+    timerRef.current = setInterval(() => setLiveTime((t) => t + 1), 1000);
+    return () => clearInterval(timerRef.current);
+  }, [mode]);
+
+  const startCamera = async () => {
+    try {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: true,
+        });
+      } catch {
+        // Fallback: no facingMode constraint (works on all desktops/webcams)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+      }
+      streamRef.current = stream;
+      // Video element is now mounted — attach stream directly
+      await attachVideoStream(stream, videoRef.current);
+      return true;
+    } catch {
+      alert("Camera/mic access denied or unavailable. Please allow camera access in your browser.");
+      return false;
+    }
+  };
+
+  const createHostPeer = useCallback((viewerId) => {
+    // Guard: stream must exist — retry up to 3s if camera is still starting
+    if (!socket || !currentUser?._id) return;
+    if (!streamRef.current) {
+      let retries = 0;
+      const wait = setInterval(() => {
+        retries++;
+        if (streamRef.current) {
+          clearInterval(wait);
+          createHostPeer(viewerId); // retry with stream
+        } else if (retries >= 30) {
+          clearInterval(wait);
+        }
+      }, 100);
+      return;
+    }
+
+    hostPeersRef.current[viewerId]?.destroy?.();
+
+    const peer = new SimplePeer({
+      initiator: true,
+      trickle: true,
+      stream: streamRef.current,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478" }
+        ]
+      }
+    });
+
+    hostPeersRef.current[viewerId] = peer;
+
+    peer.on("signal", (signal) => {
+      socket.emit("liveOffer", {
+        hostId: currentUser._id,
+        viewerId,
+        signal,
+      });
+    });
+
+    peer.on("close", () => {
+      delete hostPeersRef.current[viewerId];
+    });
+
+    peer.on("error", () => {
+      delete hostPeersRef.current[viewerId];
+      peer.destroy();
+    });
+
+    // hostPeersRef.current[viewerId] = peer; // Moved up
+  }, [currentUser?._id, socket]);
+
+  const createViewerPeer = useCallback((hostId, signal) => {
+    if (!socket) return;
+
+    destroyViewerPeer();
+
+    const peer = new SimplePeer({
+      initiator: false,
+      trickle: true,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478" }
+        ]
+      }
+    });
+
+    viewerPeerRef.current = peer;
+
+    peer.on("signal", (answerSignal) => {
+      socket.emit("liveAnswer", {
+        hostId,
+        signal: answerSignal,
+      });
+    });
+
+    peer.on("stream", async (remoteStream) => {
+      remoteStreamRef.current = remoteStream;
+      await attachVideoStream(remoteStream);
+    });
+
+    peer.on("error", () => peer.destroy());
+    peer.on("close", () => {
+      if (viewerPeerRef.current === peer) {
+        viewerPeerRef.current = null;
+      }
+    });
+
+    peer.signal(signal);
+    // viewerPeerRef.current = peer; // Moved up
+  }, [attachVideoStream, destroyViewerPeer, socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onLiveChatMsg = ({ id, user, text, ts, joinedViewers: nextJoinedViewers }) => {
+      setLiveChat((prev) => {
+        // Deduplicate: skip if we already added this message locally (same id)
+        if (prev.find((m) => String(m.id) === String(id))) return prev;
+        return [...prev, { id, user, text, ts: new Date(ts) }];
+      });
+      if (Array.isArray(nextJoinedViewers)) {
+        setJoinedViewerIds(nextJoinedViewers);
+      }
+    };
+
+    const onLiveSessionStarted = (session) => {
+      setJoiningLive(false);
+      setSessionRole("viewer");
+      setLiveSession({ ...session, autoJoin: false });
+      setLiveType(session.type);
+      setTitle(session.title);
+      setViewers(session.viewers || []);
+      setJoinedViewerIds(session.joinedViewers || []);
+      setMode(session.type === "video" ? "viewer-video" : "viewer-chat");
+      setLiveChat([{ id: Date.now(), user: "System", text: "Joined live session.", ts: new Date() }]);
+
+      if (session.type === "video") {
+        socket.emit("requestLiveStream", { hostId: session.hostId });
+      }
+    };
+
+    const onLiveUnavailable = () => {
+      setJoiningLive(false);
+      setLiveSession(null);
+      resetViewerState("This live session is no longer available.");
+    };
+
+    const onLiveViewerJoined = ({ viewerId, joinedViewers: nextJoinedViewers, viewerName }) => {
+      setJoinedViewerIds(nextJoinedViewers || []);
+      if (viewerId) createHostPeer(viewerId);
+      if (viewerName) {
+        setLiveChat((prev) => [...prev, { id: Date.now() + Math.random(), user: "System", text: `${viewerName} joined the live.`, ts: new Date() }]);
+      }
+    };
+
+    const onLiveViewerLeft = ({ joinedViewers: nextJoinedViewers, viewerId }) => {
+      setJoinedViewerIds(nextJoinedViewers || []);
+      if (viewerId && hostPeersRef.current[viewerId]) {
+        hostPeersRef.current[viewerId].destroy();
+        delete hostPeersRef.current[viewerId];
+      }
+    };
+
+    const onLiveStreamRequested = ({ viewerId }) => {
+      // Use ref to avoid stale closure — host must always respond
+      if (sessionRoleRef.current === "host" && liveTypeRef.current === "video") {
+        createHostPeer(viewerId);
+      }
+    };
+
+    const onLiveOffer = ({ hostId, signal }) => {
+      if (sessionRoleRef.current === "viewer" && liveSessionRef.current?.hostId === hostId) {
+        if (!viewerPeerRef.current) {
+          console.log("🤝 Receiving initial live offer from host:", hostId);
+          createViewerPeer(hostId, signal);
+        } else {
+          console.log("📡 Receiving trickle ICE candidate/signal from host");
+          viewerPeerRef.current.signal(signal);
+        }
+      }
+    };
+
+    const onLiveAnswer = ({ viewerId, signal }) => {
+      if (sessionRoleRef.current === "host" && hostPeersRef.current[viewerId]) {
+        console.log("🤝 Receiving live answer from viewer:", viewerId);
+        hostPeersRef.current[viewerId].signal(signal);
+      }
+    };
+
+    const onLiveEnded = ({ hostId, message }) => {
+      if (sessionRoleRef.current === "viewer" && liveSessionRef.current?.hostId === hostId) {
+        setLiveSession((prev) => prev ? { ...prev, ended: true, message: message || "Live ended. Thanks for watching! 👋", autoJoin: false } : prev);
+        resetViewerState(message || "Live ended. Thanks for watching! 👋");
+      }
+    };
+
+    socket.on("liveChatMsg", onLiveChatMsg);
+    socket.on("liveSessionStarted", onLiveSessionStarted);
+    socket.on("liveUnavailable", onLiveUnavailable);
+    socket.on("liveViewerJoined", onLiveViewerJoined);
+    socket.on("liveViewerLeft", onLiveViewerLeft);
+    socket.on("liveStreamRequested", onLiveStreamRequested);
+    socket.on("liveOffer", onLiveOffer);
+    socket.on("liveAnswer", onLiveAnswer);
+    socket.on("liveEnded", onLiveEnded);
+
+    return () => {
+      socket.off("liveChatMsg", onLiveChatMsg);
+      socket.off("liveSessionStarted", onLiveSessionStarted);
+      socket.off("liveUnavailable", onLiveUnavailable);
+      socket.off("liveViewerJoined", onLiveViewerJoined);
+      socket.off("liveViewerLeft", onLiveViewerLeft);
+      socket.off("liveStreamRequested", onLiveStreamRequested);
+      socket.off("liveOffer", onLiveOffer);
+      socket.off("liveAnswer", onLiveAnswer);
+      socket.off("liveEnded", onLiveEnded);
+    };
+  }, [createHostPeer, createViewerPeer, liveSession, liveType, resetViewerState, sessionRole, setLiveSession, socket]);
+
+  useEffect(() => {
+    if (!socket || !liveSession?.autoJoin || sessionRole === "viewer" || joiningLive) return;
+    setJoiningLive(true);
+    socket.emit("joinLive", { hostId: liveSession.hostId });
+  }, [joiningLive, liveSession, sessionRole, socket]);
+
+  useEffect(() => {
+    return () => {
+      clearInterval(timerRef.current);
+      if (sessionRole === "viewer" && liveSession?.hostId) {
+        socket?.emit("leaveLive", { hostId: liveSession.hostId });
+      }
+      destroyHostPeers();
+      destroyViewerPeer();
+      stopCamera();
+      stopRemoteStream();
+    };
+  }, [destroyHostPeers, destroyViewerPeer, liveSession, sessionRole, socket, stopCamera, stopRemoteStream]);
+
+  const goLive = async () => {
+    if (!socket || !currentUser?._id || !liveType) return;
+
+    const nextTitle = title || `${currentUser?.username}'s Live`;
+    setSessionRole("host");
+    setLiveChat([{ id: Date.now(), user: "System", text: "You are live now!", ts: new Date() }]);
+    setJoinedViewerIds([]);
+    // For video: set mode first so video element mounts, then startCamera() runs in useEffect
+    setMode(liveType === "video" ? "live-video" : "live-chat");
+    setLiveSession(null);
+
+    socket.emit("goLive", {
+      hostId: currentUser._id,
+      hostName: currentUser.username,
+      type: liveType,
+      title: nextTitle,
+      viewers,
+    });
+  };
+
+  const endLive = () => {
+    if (sessionRole === "viewer") {
+      if (liveSession?.hostId) {
+        socket?.emit("leaveLive", { hostId: liveSession.hostId });
+      }
+      setLiveSession(null);
+      resetViewerState();
+      return;
+    }
+
+    socket?.emit("endLive", { hostId: currentUser?._id });
+    resetHostState();
+  };
+
+  const joinLive = () => {
+    if (!socket || !liveSession?.hostId) return;
+    setJoiningLive(true);
+    socket.emit("joinLive", { hostId: liveSession.hostId });
+  };
+
+  const sendLiveMsg = () => {
+    if (!liveMsg.trim()) return;
+
+    const msg = {
+      id: Date.now(),
+      hostId: sessionRole === "host" ? currentUser?._id : liveSession?.hostId,
+      user: currentUser?.username || "You",
+      text: liveMsg,
+      ts: new Date(),
+    };
+
+    // Add own message locally immediately (optimistic) — server echo may arrive late
+    setLiveChat((prev) => [...prev, { ...msg, isSelf: true }]);
+    socket?.emit("liveChatMsg", msg);
+    setLiveMsg("");
+  };
+
+  const toggleViewer = (id) => {
+    if (sessionRole === "viewer") return;
+    setViewers((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]);
+  };
+
+  if (isViewingInvite && sessionRole !== "viewer") {
+    return (
+      <section className={`flex-1 h-full flex flex-col items-center justify-center gap-6 transition-colors px-8 ${chatBg}`} style={{ animation: "fadeUp 0.35s ease-out" }}>
+        <div className="w-24 h-24 rounded-3xl bg-red-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.15)]">
+          <span className="material-symbols-outlined text-5xl text-red-500">{liveSession.type === "video" ? "videocam" : "forum"}</span>
+        </div>
+        <div className="text-center max-w-md">
+          <h2 className={`text-2xl font-black mb-2 ${textPrimary}`}>{liveSession.hostName} invited you</h2>
+          <p className={`text-sm leading-relaxed ${textSecondary}`}>{liveSession.title}</p>
+          <p className={`text-xs mt-2 ${textSecondary}`}>{liveSession.type === "video" ? "Join to watch the host live and chat in real time." : "Join the live room to chat in real time."}</p>
+          {liveChat.length > 0 && liveSession.ended && (
+            <p className="text-sm text-red-400 mt-4">{liveChat[liveChat.length - 1]?.text}</p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button onClick={joinLive} disabled={joiningLive || liveSession.ended}
+            className="px-6 py-3 rounded-2xl text-white font-bold transition-all disabled:opacity-50 hover:scale-[1.02]"
+            style={{ background: "linear-gradient(135deg,#ef4444,#ff6b6b)" }}>
+            {joiningLive ? "Joining..." : liveSession.ended ? "Live Ended" : "Join Live"}
+          </button>
+          <button onClick={() => { setLiveSession(null); setLiveChat([]); }}
+            className={`px-6 py-3 rounded-2xl text-sm font-semibold transition-all ${isDark ? "bg-white/8 text-white hover:bg-white/12" : "bg-white text-slate-700 hover:bg-slate-100"}`}>
+            Close
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (mode === "idle") return (
+    <section className={`flex-1 h-full flex flex-col items-center justify-center gap-8 transition-colors px-8 ${chatBg}`}
+      style={{ animation: "fadeUp 0.4s ease-out" }}>
+
+      <style>{`
+        @keyframes livePulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.5)} 50%{box-shadow:0 0 0 16px rgba(239,68,68,0)} }
+        @keyframes liveGlow  { 0%,100%{opacity:.7} 50%{opacity:1} }
+      `}</style>
+
+      <div className="relative">
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg,#ef4444,#ff6b6b)", animation: "livePulse 2s ease-in-out infinite", boxShadow: "0 0 30px rgba(239,68,68,0.4)" }}>
+          <span className="material-symbols-outlined text-5xl text-white">live_tv</span>
+        </div>
+        <div className="absolute -top-1 -right-1 px-2 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-full"
+          style={{ animation: "liveGlow 1.5s ease-in-out infinite", letterSpacing: 1 }}>LIVE</div>
+      </div>
+
+      <div className="text-center">
+        <h2 className="text-2xl font-black mb-2" style={{ fontFamily: "inherit" }}>
+          <span className={textPrimary}>Go </span>
+          <span style={{ color: "#ef4444" }}>Live</span>
+        </h2>
+        <p className={`text-sm max-w-sm leading-relaxed ${textSecondary}`}>
+          Start a live video stream or open a live chat with selected viewers. You control who can watch.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+        {[
+          { type: "video", icon: "videocam", label: "Live Video", desc: "Stream video with live chat", color: "#6C5CE7" },
+          { type: "chat", icon: "forum", label: "Live Chat", desc: "Text-only live session", color: "#00d4ff" },
+        ].map((opt) => (
+          <button key={opt.type} onClick={() => { setLiveType(opt.type); setMode("setup"); }}
+            className={`flex-1 p-5 rounded-3xl border text-left transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 ${cardBg}`}
+            style={{ boxShadow: `0 8px 30px ${opt.color}12` }}>
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-3 shadow-lg"
+              style={{ background: `linear-gradient(135deg,${opt.color},${opt.color}cc)`, boxShadow: `0 4px 16px ${opt.color}40` }}>
+              <span className="material-symbols-outlined text-white text-xl">{opt.icon}</span>
+            </div>
+            <p className={`font-bold text-base mb-1 ${textPrimary}`}>{opt.label}</p>
+            <p className={`text-xs leading-relaxed ${textSecondary}`}>{opt.desc}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+
+  if (mode === "setup") return (
+    <section className={`flex-1 h-full flex overflow-hidden transition-colors ${chatBg}`}
+      style={{ animation: "fadeUp 0.35s ease-out" }}>
+      <div className="flex-1 flex flex-col overflow-y-auto p-8 gap-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setMode("idle"); setLiveType(null); }}
+            className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container"}`}>
+            <span className={`material-symbols-outlined ${textSecondary}`}>arrow_back</span>
+          </button>
+          <div>
+            <h2 className={`text-lg font-black ${textPrimary}`}>
+              {liveType === "video" ? "🎥 Live Video Setup" : "💬 Live Chat Setup"}
+            </h2>
+            <p className={`text-xs ${textSecondary}`}>Configure your session before going live</p>
+          </div>
+        </div>
+
+        <div>
+          <label className={`text-[10px] font-bold uppercase tracking-widest block mb-2 ${textSecondary}`}>Live Title</label>
+          <input
+            className={`w-full rounded-2xl py-3 px-4 text-sm border-none outline-none focus:ring-2 focus:ring-[#ef4444] transition-all ${inputCls}`}
+            placeholder={`${currentUser?.username || "My"}'s Live`}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        <div className={`rounded-3xl border p-4 ${cardBg}`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className={`text-sm font-bold ${textPrimary}`}>Viewers</p>
+            <div className="flex gap-1">
+              {["viewers", "add"].map((t) => (
+                <button key={t} onClick={() => setViewerTab(t)}
+                  className={`text-[10px] px-3 py-1 rounded-full font-semibold transition-all capitalize
+                    ${viewerTab === t ? "bg-[#ef4444] text-white" : isDark ? "text-white/40 hover:bg-white/10" : "text-on-surface-variant hover:bg-surface-container"}`}>
+                  {t === "viewers" ? `Allowed (${viewers.length})` : "+ Add"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {viewerTab === "add" && (
+            <div className="relative mb-3">
+              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm ${textSecondary}`}>search</span>
+              <input
+                className={`w-full rounded-xl py-2 pl-9 pr-4 text-xs border-none outline-none focus:ring-1 focus:ring-[#6C5CE7] ${inputCls}`}
+                placeholder="Search contacts..."
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar">
+            {viewerTab === "add" ? (
+              filtered.length === 0
+                ? <p className={`text-xs text-center py-4 ${textSecondary}`}>No contacts found</p>
+                : filtered.map((c) => (
+                  <div key={c._id}
+                    className={`flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${rowHover}`}
+                    onClick={() => toggleViewer(c._id)}>
+                    <Avatar user={c} size="sm" />
+                    <p className={`flex-1 text-sm font-medium ${textPrimary}`}>{c.username}</p>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+                      ${viewers.includes(c._id) ? "bg-[#ef4444] border-[#ef4444]" : isDark ? "border-white/20" : "border-outline-variant"}`}>
+                      {viewers.includes(c._id) && <span className="material-symbols-outlined text-white text-[11px]">check</span>}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              allowedContacts.length === 0
+                ? <div className="text-center py-6">
+                  <span className={`material-symbols-outlined text-3xl ${textSecondary} opacity-40`}>group</span>
+                  <p className={`text-xs mt-1 ${textSecondary}`}>No viewers added yet</p>
+                  <button onClick={() => setViewerTab("add")} className="text-xs text-[#ef4444] mt-1 hover:underline">+ Add viewers</button>
+                </div>
+                : allowedContacts.map((c) => (
+                  <div key={c._id} className={`flex items-center gap-3 p-2.5 rounded-2xl ${rowHover}`}>
+                    <Avatar user={c} size="sm" />
+                    <p className={`flex-1 text-sm font-medium ${textPrimary}`}>{c.username}</p>
+                    <button onClick={() => toggleViewer(c._id)}
+                      className="p-1 rounded-full hover:bg-red-500/15 text-red-400 transition-colors">
+                      <span className="material-symbols-outlined text-sm">person_remove</span>
+                    </button>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+
+        <button onClick={goLive}
+          className="py-4 rounded-2xl text-white font-black text-base tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+          style={{ background: "linear-gradient(135deg,#ef4444,#ff6b6b)", boxShadow: "0 8px 24px rgba(239,68,68,0.4)" }}>
+          <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+          GO LIVE
+        </button>
+      </div>
+    </section>
+  );
+
+  if (mode === "live-video" || mode === "viewer-video") return (
+    <section className={`flex-1 h-full flex overflow-hidden transition-colors ${isDark ? "bg-[#0a0a0f]" : "bg-[#f5f5f5]"}`}
+      style={{ animation: "fadeUp 0.3s ease-out" }}>
+
+      <div className="flex-1 flex flex-col relative">
+        <video
+          ref={bindVideoRef}
+          autoPlay
+          playsInline
+          muted={sessionRole === "host"}
+          className="flex-1 object-cover w-full bg-black"
+          style={{ maxHeight: "70%" }}
+        />
+
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-white text-xs font-bold">LIVE</span>
+            <span className="text-white/60 text-xs">{fmt(liveTime)}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full">
+            <span className="material-symbols-outlined text-white text-sm">visibility</span>
+            <span className="text-white text-xs">{sessionRole === "host" ? joinedViewerIds.length : joinedViewerIds.length + 1} watching</span>
+          </div>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-3"
+          style={{ background: "linear-gradient(transparent,rgba(0,0,0,0.7))" }}>
+          <p className="text-white font-bold text-sm">{title || (sessionRole === "host" ? `${currentUser?.username}'s Live` : liveSession?.title)}</p>
+          <p className="text-white/50 text-xs">{sessionRole === "host" ? `Visible to ${viewers.length} invited viewers` : `Hosted by ${liveSession?.hostName}`}</p>
+        </div>
+
+        <button onClick={endLive}
+          className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold transition-all hover:scale-105"
+          style={{ background: sessionRole === "host" ? "rgba(239,68,68,0.9)" : "rgba(15,23,42,0.75)", backdropFilter: "blur(8px)" }}>
+          {sessionRole === "host" ? "End Live" : "Leave"}
+        </button>
+      </div>
+
+      <LiveChatSidebar liveChat={liveChat} liveMsg={liveMsg} setLiveMsg={setLiveMsg}
+        sendLiveMsg={sendLiveMsg} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary}
+        chatBottomRef={chatBottomRef} allowedContacts={sessionRole === "host" ? allowedContacts : joinedContacts}
+        onToggleViewer={toggleViewer} viewers={sessionRole === "host" ? viewers : joinedViewerIds}
+        contacts={sessionRole === "host" ? contacts : joinedContacts}
+        inputCls={inputCls} cardBg={cardBg} rowHover={rowHover}
+        canManageViewers={sessionRole === "host"} />
+    </section>
+  );
+
+  if (mode === "live-chat" || mode === "viewer-chat") return (
+    <section className={`flex-1 h-full flex overflow-hidden transition-colors ${chatBg}`}
+      style={{ animation: "fadeUp 0.3s ease-out" }}>
+
+      <div className="flex flex-col p-6 gap-4 w-64 shrink-0 border-r"
+        style={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)" }}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/15 border border-red-500/30">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-red-500 text-xs font-black">{sessionRole === "host" ? "LIVE CHAT" : "JOINED LIVE CHAT"}</span>
+          </div>
+        </div>
+        <div>
+          <p className={`font-bold text-sm ${textPrimary}`}>{title || (sessionRole === "host" ? `${currentUser?.username}'s Live` : liveSession?.title)}</p>
+          <p className={`text-xs mt-0.5 ${textSecondary}`}>{fmt(liveTime)}</p>
+        </div>
+        <div className={`rounded-2xl p-3 border ${cardBg}`}>
+          <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ${textSecondary}`}>{sessionRole === "host" ? `Viewers (${viewers.length})` : `Participants (${joinedViewerIds.length + 1})`}</p>
+          <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+            {(sessionRole === "host" ? allowedContacts : joinedContacts).map((c) => (
+              <div key={c._id} className="flex items-center gap-2">
+                <Avatar user={c} size="sm" />
+                <p className={`text-xs flex-1 truncate ${textPrimary}`}>{c.username}</p>
+                {sessionRole === "host" && (
+                  <button onClick={() => toggleViewer(c._id)} className="text-red-400/70 hover:text-red-400 transition-colors">
+                    <span className="material-symbols-outlined text-xs">close</span>
+                  </button>
+                )}
+              </div>
+            ))}
+            {(sessionRole === "host" ? allowedContacts : joinedContacts).length === 0 && <p className={`text-xs ${textSecondary}`}>{sessionRole === "host" ? "No viewers" : "No one else joined yet"}</p>}
+          </div>
+        </div>
+        <button onClick={endLive}
+          className="py-2.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+          style={{ background: "linear-gradient(135deg,#ef4444,#ff6b6b)" }}>
+          <span className="material-symbols-outlined text-sm">{sessionRole === "host" ? "stop_circle" : "logout"}</span>
+          {sessionRole === "host" ? "End Live" : "Leave Live"}
+        </button>
+      </div>
+
+      <LiveChatSidebar liveChat={liveChat} liveMsg={liveMsg} setLiveMsg={setLiveMsg}
+        sendLiveMsg={sendLiveMsg} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary}
+        chatBottomRef={chatBottomRef} allowedContacts={sessionRole === "host" ? allowedContacts : joinedContacts}
+        onToggleViewer={toggleViewer} viewers={sessionRole === "host" ? viewers : joinedViewerIds}
+        contacts={sessionRole === "host" ? contacts : joinedContacts}
+        inputCls={inputCls} cardBg={cardBg} rowHover={rowHover} fullWidth
+        canManageViewers={sessionRole === "host"} />
+    </section>
+  );
+
+  return null;
+}
+
+// ── Live Chat Sidebar (reused in both video and chat live modes) ──────────────
+function LiveChatSidebar({ liveChat, liveMsg, setLiveMsg, sendLiveMsg, isDark, textPrimary, textSecondary,
+  chatBottomRef, allowedContacts, onToggleViewer, viewers, contacts, inputCls, cardBg, rowHover, fullWidth, canManageViewers = true }) {
+
+  const [tab, setTab] = useState("chat"); // "chat" | "viewers"
+  const [searchQ, setSearchQ] = useState("");
+  const filtered = contacts.filter(c => c.username.toLowerCase().includes(searchQ.toLowerCase()));
+
+  return (
+    <div className={`flex flex-col border-l ${fullWidth ? "flex-1" : "w-80"} ${isDark ? "border-white/5 bg-[#13141c]" : "border-outline-variant/20 bg-white"}`}>
+
+      {/* Tab switcher */}
+      <div className={`flex items-center gap-1 p-3 border-b ${isDark ? "border-white/5" : "border-outline-variant/20"}`}>
+        {["chat", "viewers"].map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all capitalize
+              ${tab === t
+                ? "bg-red-500 text-white"
+                : isDark ? "text-white/40 hover:bg-white/8" : "text-on-surface-variant hover:bg-surface-container"}`}>
+            {t === "chat" ? "💬 Live Chat" : `👥 Viewers (${viewers.length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* CHAT tab */}
+      {tab === "chat" && (<>
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 flex flex-col gap-2">
+          {liveChat.map(msg => (
+            <div key={msg.id} style={{ animation: "fadeUp 0.2s ease-out" }}>
+              <span className={`text-[10px] font-bold ${msg.user === "System" ? "text-red-400" : "text-[#6C5CE7]"}`}>
+                {msg.user}
+              </span>
+              <span className={`text-xs ml-1.5 ${isDark ? "text-white/80" : "text-on-surface"}`}>{msg.text}</span>
+            </div>
+          ))}
+          <div ref={chatBottomRef} />
+        </div>
+        <div className={`p-3 border-t flex gap-2 ${isDark ? "border-white/5" : "border-outline-variant/20"}`}>
+          <input
+            className={`flex-1 rounded-full py-2.5 px-4 text-xs border-none outline-none focus:ring-2 focus:ring-red-500 transition-all ${inputCls}`}
+            placeholder="Say something..."
+            value={liveMsg}
+            onChange={e => setLiveMsg(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") sendLiveMsg(); }}
+          />
+          <button onClick={sendLiveMsg} disabled={!liveMsg.trim()}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-40 transition-all hover:scale-105"
+            style={{ background: "linear-gradient(135deg,#ef4444,#ff6b6b)" }}>
+            <span className="material-symbols-outlined text-sm">send</span>
+          </button>
+        </div>
+      </>)}
+
+      {/* VIEWERS tab */}
+      {tab === "viewers" && (
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 flex flex-col gap-3">
+          {canManageViewers && (
+            <div className="relative">
+              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm ${textSecondary}`}>search</span>
+              <input
+                className={`w-full rounded-xl py-2 pl-9 pr-4 text-xs border-none outline-none focus:ring-1 focus:ring-red-400 ${inputCls}`}
+                placeholder="Search to add..."
+                value={searchQ}
+                onChange={e => setSearchQ(e.target.value)}
+              />
+            </div>
+          )}
+
+          <p className={`text-[10px] font-bold uppercase tracking-widest ${textSecondary}`}>{canManageViewers ? "All contacts" : "Joined viewers"}</p>
+          {(canManageViewers ? filtered : allowedContacts).map(c => (
+            <div key={c._id}
+              className={`flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${rowHover}`}
+              onClick={() => canManageViewers && onToggleViewer(c._id)}>
+              <Avatar user={c} size="sm" />
+              <p className={`flex-1 text-sm font-medium ${textPrimary}`}>{c.username}</p>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+                ${viewers.includes(c._id) ? "bg-red-500 border-red-500" : isDark ? "border-white/20" : "border-outline-variant"}`}>
+                {canManageViewers ? (
+                  viewers.includes(c._id)
+                    ? <span className="material-symbols-outlined text-white text-[11px]">check</span>
+                    : <span className="material-symbols-outlined text-[11px]" style={{ color: "transparent" }}>add</span>
+                ) : (
+                  <span className="material-symbols-outlined text-white text-[11px]">visibility</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1051,14 +2348,29 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
   const { updateSetting, updateMany } = useAppSettings();
   const { token } = useAuth();
 
-  const [avatarSrc, setAvatarSrc]       = useState(settings.avatarUrl || (user?.avatar ? `${API_URL}${user.avatar}` : null));
-  const [uploading, setUploading]       = useState(false);
-  const [displayName, setDisplayName]   = useState(settings.displayName || user?.username || "");
-  const [bio, setBio]                   = useState(settings.bio || "");
-  const [saving, setSaving]             = useState(false);
-  const [saved, setSaved]               = useState(false);
-  const [hoverAvatar, setHoverAvatar]   = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState(settings.avatarUrl || (user?.avatar ? `${API_URL}${user.avatar}` : null));
+  const [uploading, setUploading] = useState(false);
+  const [displayName, setDisplayName] = useState(settings.displayName || user?.username || "");
+  const [bio, setBio] = useState(settings.bio || "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [hoverAvatar, setHoverAvatar] = useState(false);
   const fileRef = useRef(null);
+
+  // AI Avatar generator state
+  const AI_AVATAR_STYLES = [
+    { id: "lorelei", label: "Lorelei", emoji: "🎨" },
+    { id: "adventurer", label: "Adventurer", emoji: "⚔️" },
+    { id: "bottts", label: "Robots", emoji: "🤖" },
+    { id: "pixel-art", label: "Pixel Art", emoji: "👾" },
+    { id: "micah", label: "Micah", emoji: "✨" },
+    { id: "notionists", label: "Notion", emoji: "🌟" },
+  ];
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiStyle, setAiStyle] = useState("lorelei");
+  const [aiSeed, setAiSeed] = useState(user?.username || "chatverse");
+  const [aiApplying, setAiApplying] = useState(false);
+  const diceBearUrl = (style, seed) => `https://api.dicebear.com/8.x/${style}/svg?seed=${encodeURIComponent(seed)}&size=200&radius=50`;
 
   // Keep local state in sync if settings change externally
   useEffect(() => {
@@ -1068,9 +2380,14 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    await uploadAvatarFile(file);
+    e.target.value = "";
+  };
+
+  const uploadAvatarFile = async (file) => {
     const blobUrl = URL.createObjectURL(file);
     setAvatarSrc(blobUrl);
-    updateSetting("avatarUrl", blobUrl); // sidebar updates immediately
+    updateSetting("avatarUrl", blobUrl);
     setUploading(true);
     try {
       const fd = new FormData();
@@ -1086,7 +2403,40 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
       }
     } catch { /* keep blob preview */ }
     finally { setUploading(false); }
-    e.target.value = "";
+  };
+
+  // Convert DiceBear SVG URL to PNG file via canvas, then upload
+  const applyAiAvatar = async () => {
+    setAiApplying(true);
+    try {
+      const url = diceBearUrl(aiStyle, aiSeed);
+      const resp = await fetch(url);
+      const svgBlob = await resp.blob();
+      const svgObjectUrl = URL.createObjectURL(svgBlob);
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 200; canvas.height = 200;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, 200, 200);
+          canvas.toBlob(async (pngBlob) => {
+            URL.revokeObjectURL(svgObjectUrl);
+            const file = new File([pngBlob], `ai-avatar-${Date.now()}.png`, { type: "image/png" });
+            await uploadAvatarFile(file);
+            setShowAiModal(false);
+            resolve();
+          }, "image/png");
+        };
+        img.onerror = reject;
+        img.src = svgObjectUrl;
+      });
+    } catch (err) {
+      alert("Failed to apply avatar. Try a different style.");
+    } finally {
+      setAiApplying(false);
+    }
   };
 
   const handleSave = async () => {
@@ -1129,7 +2479,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
   };
 
   return (
-    <section className={`flex-1 h-full flex flex-col items-center justify-center gap-0 relative overflow-hidden transition-colors duration-300 ${chatBg}`}>
+    <section className={`max-md:hidden flex-1 h-full flex flex-col items-center justify-center gap-0 relative overflow-hidden rounded-2xl transition-colors duration-300 ${chatBg}`}>
 
       <style>{`
         @keyframes spin       { to { transform: rotate(360deg); } }
@@ -1178,12 +2528,14 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
             style={{ width: 196, height: 196, boxShadow: "0 0 40px rgba(108,92,231,0.3), 0 16px 48px rgba(0,0,0,0.4)" }}>
             {avatarSrc
               ? <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover"
-                  style={{ filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s" }} />
+                style={{ filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s" }} />
               : <div className="w-full h-full flex items-center justify-center font-black"
-                  style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", fontSize: 68, color: "#fff",
-                    filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s" }}>
-                  {initial}
-                </div>
+                style={{
+                  background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", fontSize: 68, color: "#fff",
+                  filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s"
+                }}>
+                {initial}
+              </div>
             }
           </div>
 
@@ -1214,10 +2566,107 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 
-        {/* ── Tap hint ────────────────────────────────────────────────── */}
-        <p className={`text-xs mb-6 ${isDark ? "text-white/30" : "text-on-surface-variant/50"}`}>
-          Tap photo to change
-        </p>
+        {/* ── Tap hint + AI Avatar button ──────────────────────────────── */}
+        <div className="flex items-center gap-3 mb-6">
+          <p className={`text-xs ${isDark ? "text-white/30" : "text-on-surface-variant/50"}`}>
+            Tap photo to change
+          </p>
+          <button
+            onClick={() => setShowAiModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+            style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", color: "#fff", boxShadow: "0 2px 12px rgba(108,92,231,0.35)" }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>auto_awesome</span>
+            AI Avatar
+          </button>
+        </div>
+
+        {/* ── AI Avatar Modal ──────────────────────────────────────────── */}
+        {showAiModal && (
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center" onClick={() => setShowAiModal(false)}>
+            <div
+              className={`w-[360px] rounded-3xl shadow-2xl p-6 flex flex-col gap-4 ${isDark ? "bg-[#1a1b23]" : "bg-white"}`}
+              onClick={e => e.stopPropagation()}
+              style={{ animation: "fadeUp 0.25s ease-out" }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#6C5CE7]">auto_awesome</span>
+                  <h2 className={`text-sm font-extrabold ${isDark ? "text-white" : "text-on-surface"}`}>AI Avatar Generator</h2>
+                </div>
+                <button onClick={() => setShowAiModal(false)} className={`p-1.5 rounded-full ${isDark ? "hover:bg-white/10" : "hover:bg-slate-100"}`}>
+                  <span className={`material-symbols-outlined text-sm ${isDark ? "text-white/40" : "text-slate-400"}`}>close</span>
+                </button>
+              </div>
+
+              {/* Live preview */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <img
+                    key={`${aiStyle}-${aiSeed}`}
+                    src={diceBearUrl(aiStyle, aiSeed)}
+                    alt="AI Avatar Preview"
+                    className="w-24 h-24 rounded-2xl shadow-lg"
+                    style={{ border: "3px solid #6C5CE7" }}
+                  />
+                  <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#6C5CE7] text-white text-[9px] font-black rounded-full">AI</div>
+                </div>
+              </div>
+
+              {/* Style picker */}
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? "text-white/40" : "text-slate-400"}`}>Style</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {AI_AVATAR_STYLES.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setAiStyle(s.id)}
+                      className={`py-2 px-1 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 transition-all
+                        ${aiStyle === s.id
+                          ? "bg-[#6C5CE7] text-white shadow-md scale-[1.04]"
+                          : isDark ? "bg-white/6 text-white/60 hover:bg-white/12" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    >
+                      <span className="text-lg">{s.emoji}</span>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Seed / personality */}
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? "text-white/40" : "text-slate-400"}`}>Personality Seed</p>
+                <div className="flex gap-2">
+                  <input
+                    value={aiSeed}
+                    onChange={e => setAiSeed(e.target.value)}
+                    placeholder="Type anything..."
+                    className={`flex-1 rounded-xl py-2 px-3 text-sm border-none outline-none focus:ring-2 focus:ring-[#6C5CE7] ${isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-slate-100 text-slate-800"}`}
+                  />
+                  <button
+                    onClick={() => setAiSeed(Math.random().toString(36).slice(2))}
+                    title="Randomize"
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 ${isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                  >
+                    <span className="material-symbols-outlined text-sm">shuffle</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Apply button */}
+              <button
+                onClick={applyAiAvatar}
+                disabled={aiApplying}
+                className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", boxShadow: "0 4px 20px rgba(108,92,231,0.35)" }}
+              >
+                {aiApplying
+                  ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Applying...</>
+                  : <><span className="material-symbols-outlined text-sm">check_circle</span> Apply This Avatar</>}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Display Name ─────────────────────────────────────────────── */}
         <div className="w-full mb-4">
@@ -1230,13 +2679,13 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
             placeholder={user?.username || "Your name"}
             onFocus={e => {
               e.target.style.borderColor = "#6C5CE7";
-              e.target.style.boxShadow   = "0 0 0 3px rgba(108,92,231,0.15)";
-              e.target.style.background  = isDark ? "rgba(108,92,231,0.1)" : "#f5f3ff";
+              e.target.style.boxShadow = "0 0 0 3px rgba(108,92,231,0.15)";
+              e.target.style.background = isDark ? "rgba(108,92,231,0.1)" : "#f5f3ff";
             }}
             onBlur={e => {
               e.target.style.borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)";
-              e.target.style.boxShadow   = "none";
-              e.target.style.background  = isDark ? "rgba(255,255,255,0.06)" : "#ffffff";
+              e.target.style.boxShadow = "none";
+              e.target.style.background = isDark ? "rgba(255,255,255,0.06)" : "#ffffff";
             }}
           />
         </div>
@@ -1254,13 +2703,13 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
             placeholder="Tell people about yourself..."
             onFocus={e => {
               e.target.style.borderColor = "#6C5CE7";
-              e.target.style.boxShadow   = "0 0 0 3px rgba(108,92,231,0.15)";
-              e.target.style.background  = isDark ? "rgba(108,92,231,0.1)" : "#f5f3ff";
+              e.target.style.boxShadow = "0 0 0 3px rgba(108,92,231,0.15)";
+              e.target.style.background = isDark ? "rgba(108,92,231,0.1)" : "#f5f3ff";
             }}
             onBlur={e => {
               e.target.style.borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)";
-              e.target.style.boxShadow   = "none";
-              e.target.style.background  = isDark ? "rgba(255,255,255,0.06)" : "#ffffff";
+              e.target.style.boxShadow = "none";
+              e.target.style.background = isDark ? "rgba(255,255,255,0.06)" : "#ffffff";
             }}
           />
           <p style={counterStyle}>{bio.length}/120</p>
@@ -1279,12 +2728,12 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           }}>
           {saving
             ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg> Saving...</>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg> Saving...</>
             : saved
-            ? <><span className="material-symbols-outlined text-sm">check_circle</span> Saved!</>
-            : "Save Profile"
+              ? <><span className="material-symbols-outlined text-sm">check_circle</span> Saved!</>
+              : "Save Profile"
           }
         </button>
 
@@ -1309,48 +2758,51 @@ export default function ChatPage() {
 
   const isOnline = (uid) => isOnlineRaw(uid);
 
-  const isDark        = settings.theme === "dark";
-  const bg            = isDark ? "bg-[#0f0f13]"  : "bg-background";
-  const panelBg       = isDark ? "bg-[#1a1b23]"  : "bg-surface-container-lowest";
-  const chatBg        = isDark ? "bg-[#13141c]"  : "bg-surface-container-low";
-  const headerBg      = isDark ? "bg-[#1a1b23]/90 border-b border-white/5" : "bg-white/80";
-  const textPrimary   = isDark ? "text-white"     : "text-on-surface";
-  const textSecondary = isDark ? "text-white/50"  : "text-on-surface-variant";
-  const compact       = settings.compactMode;
+  const isDark = settings.theme === "dark";
+  const bg = isDark ? "bg-[#0f0f13]" : "bg-background";
+  const panelBg = isDark ? "bg-[#1a1b23]" : "bg-surface-container-lowest";
+  const chatBg = isDark ? "bg-[#13141c]" : "bg-surface-container-low";
+  const headerBg = isDark ? "bg-[#1a1b23]/90 border-b border-white/5" : "bg-white/80";
+  const textPrimary = isDark ? "text-white" : "text-on-surface";
+  const textSecondary = isDark ? "text-white/50" : "text-on-surface-variant";
+  const compact = settings.compactMode;
   const chatBackground = isDark ? DARK_BG : LIGHT_BG;
 
   // Core state
-  const [contacts, setContacts]           = useState([]);
-  const [groups, setGroups]               = useState([]);
-  const [search, setSearch]               = useState("");
+  const [contacts, setContacts] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [activeContact, setActiveContact] = useState(null);
-  const [messages, setMessages]           = useState([]);
-  const [text, setText]                   = useState("");
-  const [typing, setTyping]               = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [typing, setTyping] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
-  const [unreadMap, setUnreadMap]         = useState({});
-  const [lastMsgMap, setLastMsgMap]       = useState({});
-  const [activeTab, setActiveTab]         = useState("chats");
-  const [callData, setCallData]           = useState(null);
+  const [unreadMap, setUnreadMap] = useState({});
+  const [lastMsgMap, setLastMsgMap] = useState({});
+  const [activeTab, setActiveTab] = useState("chats");
+  const [callData, setCallData] = useState(null);
   const [incomingCallAnswered, setIncomingCallAnswered] = useState(null);
   const [recordingVoice, setRecordingVoice] = useState(false);
-  const [mediaRecorder, setMediaRecorder]   = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
 
   // New feature state
-  const [showEmojiPicker, setShowEmojiPicker]     = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
-  const [replyTo, setReplyTo]                     = useState(null);
-  const [reactions, setReactions]                 = useState({});
-  const [showGroupModal, setShowGroupModal]        = useState(false);
-  const [showVirtualBg, setShowVirtualBg]         = useState(false);
-  const [panelWidth, setPanelWidth]               = useState(320); // Fix 2: resizable panel
+  const [liveNotification, setLiveNotification] = useState(null);
+  const [liveSession, setLiveSession] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const [reactions, setReactions] = useState({});
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showVirtualBg, setShowVirtualBg] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(320); // Fix 2: resizable panel
+  const [showInfoMenu, setShowInfoMenu] = useState(false); // Info dropdown
 
-  const bottomRef    = useRef(null);
+  const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
-  const typingTimer  = useRef(null);
-  const dragRef      = useRef(null); // Fix 2: drag handle ref
-  const audioChunks  = useRef([]);
+  const typingTimer = useRef(null);
+  const dragRef = useRef(null); // Fix 2: drag handle ref
+  const audioChunks = useRef([]);
 
   // Fix 2: drag-to-resize panel
   const startDrag = (e) => {
@@ -1369,101 +2821,180 @@ export default function ChatPage() {
     window.addEventListener("mouseup", onUp);
   };
 
-  const emojis = ["😀","😂","😍","🥰","😎","🤔","👍","❤️","🔥","✨","🎉","🙏","😭","🥺","💯","🎨","🚀","💜"];
+  const emojis = ["😀", "😂", "😍", "🥰", "😎", "🤔", "👍", "❤️", "🔥", "✨", "🎉", "🙏", "😭", "🥺", "💯", "🎨", "🚀", "💜"];
 
   useEffect(() => {
     axios.get("/api/users").then(r => setContacts(r.data.users));
     axios.get("/api/messages/unread/count").then(r => {
       const m = {}; r.data.counts.forEach(c => { m[c._id] = c.count; }); setUnreadMap(m);
     });
-    // Seed sidebar avatar from server profile on first load if not already saved in settings
-    if (!settings.avatarUrl && user?.avatar) {
-      updateSetting("avatarUrl", `${API}${user.avatar}`);
+    // Load persisted groups from backend
+    axios.get("/api/groups").then(r => setGroups(r.data.groups || [])).catch(() => { });
+    // Seed sidebar avatar from server profile on first load or if changed
+    if (user?.avatar) {
+      const serverUrl = `${API}${user.avatar}`;
+      if (settings.avatarUrl !== serverUrl) {
+        updateSetting("avatarUrl", serverUrl);
+      }
     }
   }, []); // eslint-disable-line
 
+  // Sync online user data (avatars) with contacts list
+  const { onlineUsers } = useSocket();
   useEffect(() => {
-    if(!search){setSearchResults([]);return;}
-    const t = setTimeout(() => axios.get("/api/users?search="+search).then(r => setSearchResults(r.data.users)), 300);
+    if (onlineUsers && onlineUsers.length > 0) {
+      setContacts(prev => {
+        let changed = false;
+        const next = prev.map(c => {
+          const ou = onlineUsers.find(u => (u._id?.toString() || u) === c._id?.toString());
+          if (ou && ou.avatar !== c.avatar) {
+            changed = true;
+            return { ...c, avatar: ou.avatar };
+          }
+          return c;
+        });
+        return changed ? next : prev;
+      });
+    }
+  }, [onlineUsers]);
+
+  useEffect(() => {
+    if (!search) { setSearchResults([]); return; }
+    const t = setTimeout(() => axios.get("/api/users?search=" + search).then(r => setSearchResults(r.data.users)), 300);
     return () => clearTimeout(t);
   }, [search]);
 
   useEffect(() => {
-    if(!activeContact || activeContact.isAI) return;
-    axios.get("/api/messages/"+activeContact._id).then(r => {
-      setMessages(r.data.messages);
-      setUnreadMap(prev => ({...prev,[activeContact._id]:0}));
-      socket?.emit("markRead",{senderId:activeContact._id});
-    });
-  },[activeContact]); // eslint-disable-line
+    if (!activeContact || activeContact.isAI) return;
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
+    // Clear old messages when switching contact
+    setMessages([]);
+
+    axios.get("/api/messages/" + activeContact._id)
+      .then(r => {
+        setMessages(r.data.messages || []);
+        if (!activeContact.isGroup) {
+          setUnreadMap(prev => ({ ...prev, [activeContact._id]: 0 }));
+          socket?.emit("markRead", { senderId: activeContact._id });
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load messages:", err);
+      });
+  }, [activeContact]); // eslint-disable-line
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {
-    if(!socket) return;
+    if (!socket) return;
     socket.on("receiveMessage", msg => {
-      const sid = msg.sender._id||msg.sender;
-      if(activeContact&&sid===activeContact._id){setMessages(prev=>[...prev,msg]);socket.emit("markRead",{senderId:sid});}
-      else setUnreadMap(prev=>({...prev,[sid]:(prev[sid]||0)+1}));
-      setLastMsgMap(prev=>({...prev,[sid]:msg}));
+      // Normalize IDs — receiverGroup can be ObjectId string or populated object
+      const sid = String(msg.sender?._id || msg.sender || "");
+      const gid = String(msg.receiverGroup?._id || msg.receiverGroup || "");
+      const matchId = gid || sid;
+      const activeId = String(activeContact?._id || "");
+      if (activeContact && matchId === activeId) {
+        setMessages(prev => {
+          // Deduplicate: group sender gets both receiveMessage AND messageSent
+          if (prev.find(m => String(m._id) === String(msg._id))) return prev;
+          return [...prev, msg];
+        });
+        if (!activeContact.isGroup) socket.emit("markRead", { senderId: sid });
+      } else {
+        if (matchId) setUnreadMap(prev => ({ ...prev, [matchId]: (prev[matchId] || 0) + 1 }));
+      }
+      if (matchId) setLastMsgMap(prev => ({ ...prev, [matchId]: msg }));
     });
     socket.on("messageSent", msg => {
-      setMessages(prev=>prev.find(m=>m._id===msg._id)?prev:[...prev,msg]);
-      const rid=msg.receiver._id||msg.receiver;
-      setLastMsgMap(prev=>({...prev,[rid]:msg}));
+      setMessages(prev => prev.find(m => String(m._id) === String(msg._id)) ? prev : [...prev, msg]);
+      const rid = String(msg.receiverGroup?._id || msg.receiverGroup || msg.receiver?._id || msg.receiver || "");
+      if (rid) setLastMsgMap(prev => ({ ...prev, [rid]: msg }));
     });
-    socket.on("userTyping",({userId:uid,isTyping:t})=>{if(activeContact&&uid===activeContact._id)setPartnerTyping(t);});
-    return ()=>{socket.off("receiveMessage");socket.off("messageSent");socket.off("userTyping");};
-  },[socket,activeContact]);
+    socket.on("userTyping", ({ userId: uid, isTyping: t }) => { if (activeContact && uid === activeContact._id) setPartnerTyping(t); });
+    // Reaction sync from backend
+    socket.on("messageReaction", ({ messageId, reactions: newReactions }) => {
+      setReactions(prev => ({
+        ...prev,
+        [messageId]: newReactions.map(r => ({ emoji: r.emoji, userId: r.user?._id || r.user }))
+      }));
+    });
+    // When a group is created by someone, add it to this user's group list
+    socket.on("groupCreated", (group) => {
+      setGroups(prev => {
+        // Avoid duplicates
+        if (prev.find(g => g._id.toString() === group._id.toString())) return prev;
+        return [...prev, group];
+      });
+    });
+    // Live notifications
+    socket.on("liveNotification", (data) => setLiveNotification(data));
+    socket.on("liveEnded", ({ hostId, message }) => {
+      setLiveNotification(prev => prev?.hostId === hostId ? null : prev);
+      setLiveSession(prev => prev?.hostId === hostId ? { ...prev, ended: true, message: message || "Live ended. Thanks for watching! 👋", autoJoin: false } : prev);
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+      socket.off("messageSent");
+      socket.off("userTyping");
+      socket.off("messageReaction");
+      socket.off("groupCreated");
+      socket.off("liveNotification");
+      socket.off("liveEnded");
+    };
+  }, [socket, activeContact]);
 
   const handleTextChange = e => {
     setText(e.target.value);
-    if(!activeContact) return;
-    if(!typing){setTyping(true);socket?.emit("typing",{receiverId:activeContact._id,isTyping:true});}
+    if (!activeContact) return;
+    if (!typing) { setTyping(true); socket?.emit("typing", { receiverId: activeContact._id, isTyping: true }); }
     clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(()=>{setTyping(false);socket?.emit("typing",{receiverId:activeContact._id,isTyping:false});},1500);
+    typingTimer.current = setTimeout(() => { setTyping(false); socket?.emit("typing", { receiverId: activeContact._id, isTyping: false }); }, 1500);
   };
 
   const sendMessage = useCallback(() => {
-    if(!text.trim()||!activeContact) return;
+    if (!text.trim() || !activeContact) return;
     const msgData = { receiverId: activeContact._id, content: text, type: "text" };
     // Attach full reply snapshot — saved to DB and forwarded to receiver
     if (replyTo) {
       msgData.replyTo = {
-        messageId:  replyTo.messageId  || replyTo._id || "",
-        content:    replyTo.content    || "",
-        type:       replyTo.type       || "text",
+        messageId: replyTo.messageId || replyTo._id || "",
+        content: replyTo.content || "",
+        type: replyTo.type || "text",
         senderName: replyTo.senderName || "",
       };
     }
+
     socket?.emit("sendMessage", msgData);
     setText(""); setReplyTo(null);
-    socket?.emit("typing", { receiverId: activeContact._id, isTyping: false });
-  }, [text, activeContact, socket, replyTo]);
+    if (!activeContact.isGroup) {
+      socket?.emit("typing", { receiverId: activeContact._id, isTyping: false });
+    }
+  }, [text, activeContact, socket, replyTo, user]);
 
-  const handleKeyDown = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();} };
+  const handleKeyDown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
   const uploadFile = async file => {
-    if(!activeContact||!file) return;
-    const fd = new FormData(); fd.append("file",file); fd.append("receiverId",activeContact._id);
+    if (!activeContact || !file) return;
+    const fd = new FormData(); fd.append("file", file); fd.append("receiverId", activeContact._id);
     try {
-      const res = await axios.post("/api/messages/upload",fd,{headers:{"Content-Type":"multipart/form-data"}});
+      const res = await axios.post("/api/messages/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
       const msg = res.data.message;
-      socket?.emit("sendMessage",{receiverId:activeContact._id,content:msg.content,type:msg.type,fileUrl:msg.fileUrl,fileName:msg.fileName,fileSize:msg.fileSize});
-    } catch(err){alert("Upload failed: "+(err.response?.data?.message||err.message));}
+      socket?.emit("sendMessage", { receiverId: activeContact._id, content: msg.content, type: msg.type, fileUrl: msg.fileUrl, fileName: msg.fileName, fileSize: msg.fileSize });
+    } catch (err) { alert("Upload failed: " + (err.response?.data?.message || err.message)); }
   };
 
-  const handleFileSelect = e => { const f=e.target.files[0]; if(f) uploadFile(f); e.target.value=""; };
+  const handleFileSelect = e => { const f = e.target.files[0]; if (f) uploadFile(f); e.target.value = ""; };
 
   const startVoiceRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-      const mr = new MediaRecorder(stream); audioChunks.current=[];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream); audioChunks.current = [];
       mr.ondataavailable = e => audioChunks.current.push(e.data);
       mr.onstop = async () => {
-        const blob = new Blob(audioChunks.current,{type:"audio/webm"});
-        stream.getTracks().forEach(t=>t.stop());
-        await uploadFile(new File([blob],"voice-"+Date.now()+".webm",{type:"audio/webm"}));
+        const blob = new Blob(audioChunks.current, { type: "audio/webm" });
+        stream.getTracks().forEach(t => t.stop());
+        await uploadFile(new File([blob], "voice-" + Date.now() + ".webm", { type: "audio/webm" }));
       };
       mr.start(); setMediaRecorder(mr); setRecordingVoice(true);
     } catch { alert("Microphone access denied"); }
@@ -1472,142 +3003,274 @@ export default function ChatPage() {
 
   // Feature 1: React to message
   const handleReaction = (msgId, emoji) => {
+    if (!activeContact) return;
+    // Optimistic local update
     setReactions(prev => {
       const existing = prev[msgId] || [];
-      const alreadyReacted = existing.find(r => r.userId===user._id&&r.emoji===emoji);
-      if(alreadyReacted) return {...prev,[msgId]:existing.filter(r=>!(r.userId===user._id&&r.emoji===emoji))};
-      return {...prev,[msgId]:[...existing,{emoji,userId:user._id}]};
+      const alreadyIdx = existing.findIndex(r => r.userId === user._id && r.emoji === emoji);
+      if (alreadyIdx > -1) return { ...prev, [msgId]: existing.filter((_, i) => i !== alreadyIdx) };
+      return { ...prev, [msgId]: [...existing, { emoji, userId: user._id }] };
     });
+    // Emit to backend to persist and broadcast to receiver/group
+    socket?.emit("addReaction", { messageId: msgId, emoji, receiverId: activeContact._id });
   };
 
   // Feature 5: Send sticker
   const sendSticker = sticker => {
-    if(!activeContact) return;
-    socket?.emit("sendMessage",{receiverId:activeContact._id,content:sticker.emoji,type:"sticker"});
+    if (!activeContact) return;
+    socket?.emit("sendMessage", { receiverId: activeContact._id, content: sticker.emoji, type: "sticker" });
   };
 
-  // Feature 8: Create group
-  const createGroup = (name, memberIds) => {
-    const groupContact = {
-      _id: "group-"+Date.now(),
-      username: name,
-      avatar: null,
-      isGroup: true,
-      members: memberIds,
+  // Feature 8: Create group — persisted to backend
+  const createGroup = async (name, memberIds) => {
+    try {
+      const res = await axios.post("/api/groups", { name, members: memberIds });
+      const groupContact = res.data.group;
+      setGroups(prev => [...prev, groupContact]);
+      setActiveContact(groupContact);
+      setActiveTab("chats");
+      setShowGroupModal(false);
+    } catch (err) {
+      alert("Failed to create group: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+
+  // ─── CLEAR CHAT ─────────────────────────────────────────────
+  const clearChat = () => {
+    if (!activeContact) return;
+    if (!window.confirm(`Clear all messages with ${activeContact.username}? This cannot be undone.`)) return;
+    setMessages([]);
+    setReactions({});
+    setLastMsgMap(prev => { const n = { ...prev }; delete n[activeContact._id]; return n; });
+    setShowInfoMenu(false);
+  };
+
+  // ─── EXPORT CHAT AS PDF ──────────────────────────────────────
+  const exportChatAsPdf = () => {
+    if (!activeContact || messages.length === 0) {
+      alert("No messages to export.");
+      return;
+    }
+    setShowInfoMenu(false);
+
+    const formatTime = (ts) => {
+      if (!ts) return "";
+      const d = new Date(ts);
+      return d.toLocaleString();
     };
-    setGroups(prev => [...prev, groupContact]);
-    setActiveContact(groupContact);
-    setActiveTab("chats");
-    setShowGroupModal(false);
+
+    const rows = messages.map(msg => {
+      const senderName = msg.sender?.username || (msg.sender === user._id ? user.username : "Unknown");
+      const time = formatTime(msg.createdAt);
+      const content = msg.type === "text" || msg.type === "sticker"
+        ? msg.content
+        : `[${msg.type?.toUpperCase() || "FILE"}: ${msg.fileName || msg.fileUrl || ""}]`;
+      return `
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 12px;white-space:nowrap;color:#555;font-size:12px;">${time}</td>
+          <td style="padding:8px 12px;font-weight:600;white-space:nowrap;color:#6C5CE7;">${senderName}</td>
+          <td style="padding:8px 12px;color:#222;word-break:break-word;">${content}</td>
+        </tr>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat – ${activeContact.username}</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 32px; color: #111; }
+    h1   { font-size: 22px; color: #6C5CE7; margin-bottom: 4px; }
+    p    { font-size: 13px; color: #888; margin-bottom: 24px; }
+    table{ width: 100%; border-collapse: collapse; }
+    th   { background:#6C5CE7; color:#fff; padding:10px 12px; text-align:left; font-size:13px; }
+    tr:nth-child(even){ background:#f8f8ff; }
+    @media print { body { margin: 16px; } }
+  </style>
+</head>
+<body>
+  <h1>Chat with ${activeContact.username}</h1>
+  <p>Exported on ${new Date().toLocaleString()} · ${messages.length} messages</p>
+  <table>
+    <thead><tr><th>Time</th><th>Sender</th><th>Message</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) { alert("Please allow popups to export as PDF."); return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 500);
   };
 
   const startCall = (contact, type) => {
     setActiveContact(contact);
-    setCallData({userId:contact._id,myId:user._id,callType:type,name:contact.username});
+    setCallData({ userId: contact._id, myId: user._id, callType: type, name: contact.username });
     setActiveTab("chats");
   };
 
-  const handleAcceptCall = () => { setIncomingCallAnswered({...incomingCall}); setIncomingCall(null); };
-  const handleRejectCall = () => { socket?.emit("rejectCall",{to:incomingCall.from}); setIncomingCall(null); };
+  const handleAcceptCall = () => { setIncomingCallAnswered({ ...incomingCall }); setIncomingCall(null); };
+  const handleRejectCall = () => { socket?.emit("rejectCall", { to: incomingCall.from }); setIncomingCall(null); };
 
   // Chats list = groups + real contacts only. AI Bot lives only in its own panel.
-  const allChatsContacts = [...groups, ...contacts.filter(c=>c._id!==user?._id)];
-  const displayContacts  = search ? searchResults : allChatsContacts;
-  const totalUnread      = Object.values(unreadMap).reduce((a,b)=>a+b,0);
+  const allChatsContacts = [...groups, ...contacts.filter(c => c._id !== user?._id)];
+  const displayContacts = search ? searchResults : allChatsContacts;
+  const totalUnread = Object.values(unreadMap).reduce((a, b) => a + b, 0);
 
   const navItems = [
-    { key:"chats",    icon:"chat_bubble",  label:"Chats",    badge:totalUnread },
-    { key:"contacts", icon:"group",        label:"Contacts" },
-    { key:"calls",    icon:"call",         label:"Calls" },
-    { key:"stories",  icon:"amp_stories",  label:"Stories" },
+    { key: "chats", icon: "chat_bubble", label: "Chats", badge: totalUnread },
+    { key: "contacts", icon: "group", label: "Contacts" },
+    { key: "calls", icon: "call", label: "Calls" },
+    { key: "stories", icon: "amp_stories", label: "Stories" },
+    { key: "live", icon: "live_tv", label: "Live", hasDot: true },
   ];
 
   return (
-    <div className={`${bg} text-on-surface h-screen overflow-hidden flex transition-colors duration-300`}>
+    <div className={`${bg} text-on-surface h-screen overflow-hidden flex transition-colors duration-300 relative`}>
+      {/* Live Notification Toast */}
+      {liveNotification && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 ${isDark ? "bg-[#1e1f2a] border border-white/10" : "bg-white border border-outline-variant/30"}`}
+          style={{ animation: "fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${liveNotification.type === "video" ? "bg-red-500/10 text-red-500" : "bg-[#6C5CE7]/10 text-[#6C5CE7]"}`}>
+            <span className="material-symbols-outlined">{liveNotification.type === "video" ? "videocam" : "chat_bubble"}</span>
+          </div>
+          <div className="flex-1">
+            <p className={`text-sm font-bold ${textPrimary}`}>{liveNotification.hostName} is live!</p>
+            <p className={`text-xs ${textSecondary} truncate max-w-[200px]`}>{liveNotification.title}</p>
+          </div>
+          <button onClick={() => {
+            setLiveSession({ ...liveNotification, autoJoin: true, ended: false });
+            setActiveTab("live");
+            setLiveNotification(null);
+          }} className="ml-2 px-4 py-1.5 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors">
+            Join
+          </button>
+          <button onClick={() => setLiveNotification(null)} className={`ml-1 w-8 h-8 flex items-center justify-center rounded-full transition-colors ${isDark ? "hover:bg-white/10 text-white/50" : "hover:bg-slate-100 text-slate-500"}`}>
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      )}
+
       {/* Real WebRTC Call Modal */}
       {callData && <CallModal callData={callData} onEnd={() => setCallData(null)} isIncoming={false} />}
       {incomingCallAnswered && <CallModal callData={incomingCallAnswered} onEnd={() => setIncomingCallAnswered(null)} isIncoming={true} />}
-      {incomingCall&&!incomingCallAnswered&&<IncomingCallAlert callData={incomingCall} onAccept={handleAcceptCall} onReject={handleRejectCall} />}
-      {showGroupModal && <CreateGroupModal contacts={contacts.filter(c=>c._id!==user?._id)} onClose={()=>setShowGroupModal(false)} onCreate={createGroup} isDark={isDark} />}
+      {incomingCall && !incomingCallAnswered && <IncomingCallAlert callData={incomingCall} onAccept={handleAcceptCall} onReject={handleRejectCall} />}
+      {showGroupModal && <CreateGroupModal contacts={contacts.filter(c => c._id !== user?._id)} onClose={() => setShowGroupModal(false)} onCreate={createGroup} isDark={isDark} />}
 
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className={`fixed left-0 top-0 h-full z-50 w-16 flex flex-col items-center py-5 transition-colors duration-300 ${isDark?"bg-[#111218] border-r border-white/5":"bg-surface-container-lowest"}`}>
+      <aside className={`fixed z-50 flex items-center transition-colors duration-300
+        ${isDark ? "bg-[#111218]/95 border-white/5 backdrop-blur-xl" : "bg-white/95 backdrop-blur-xl shadow-[0_-1px_0_rgba(0,0,0,0.06)]"}
+        border-t md:border-t-0 md:border-r
+        bottom-0 left-0 w-full h-16 flex-row px-2
+        md:top-0 md:left-0 md:h-full md:w-[72px] md:flex-col md:py-5 md:px-0 md:justify-start`}>
 
-        {/* Profile button at top — reflects avatar from settings or server */}
-        <button onClick={()=>setActiveTab("settings")} title="My Profile"
-          className="mb-6 relative group shrink-0">
-          {(settings.avatarUrl || user?.avatar) ? (
-            <img
-              src={settings.avatarUrl || (user?.avatar ? API + user.avatar : null)}
-              alt="profile"
-              className="w-10 h-10 rounded-2xl object-cover ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all shadow-lg"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center font-bold text-white text-base shadow-lg ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all">
-              {user?.username?.[0]?.toUpperCase() || "?"}
-            </div>
-          )}
-          {/* Online dot */}
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm" />
-        </button>
-
-        <nav className="flex flex-col gap-5 flex-1 items-center">
+        {/* Nav items — evenly distributed on mobile, stacked on desktop */}
+        <nav className="flex flex-row md:flex-col gap-1 flex-1 md:flex-none justify-evenly md:justify-start items-center w-full md:w-auto md:gap-1 md:px-2">
           {navItems.map(item => (
-            <button key={item.key} onClick={()=>setActiveTab(item.key)} title={item.label}
-              className={"relative transition-all scale-95 active:scale-90 "+(activeTab===item.key
-                ?"text-[#6C5CE7] before:content-[''] before:absolute before:-left-5 before:w-1 before:h-6 before:bg-[#6C5CE7] before:rounded-r-full"
-                :(isDark?"text-white/30 hover:text-[#6C5CE7]":"text-slate-400 hover:text-[#6C5CE7]")+" duration-200")}>
-              <span className="material-symbols-outlined text-2xl">{item.icon}</span>
-              {item.badge>0&&<span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{item.badge>9?"9+":item.badge}</span>}
+            <button key={item.key} onClick={() => setActiveTab(item.key)} title={item.label}
+              className={`relative flex flex-col items-center justify-center gap-0.5 w-12 h-12 md:w-full md:h-auto md:py-2.5 md:px-1 rounded-2xl transition-all duration-200
+                ${activeTab === item.key
+                  ? isDark ? "bg-[#6C5CE7]/15 text-[#6C5CE7]" : "bg-[#6C5CE7]/10 text-[#6C5CE7]"
+                  : isDark ? "text-white/35 hover:bg-white/5 hover:text-white/70" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                }`}>
+              <span className={`material-symbols-outlined transition-all ${activeTab === item.key ? "text-[22px]" : "text-[20px]"}`}>{item.icon}</span>
+              <span className={`hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all ${activeTab === item.key ? "opacity-100" : "opacity-0"}`}>{item.label}</span>
+              {item.badge > 0 && <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-0.5">{item.badge > 9 ? "9+" : item.badge}</span>}
+              {item.hasDot && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_4px_rgba(239,68,68,0.8)]" />}
             </button>
           ))}
         </nav>
 
-        {/* Bottom nav: Group + AI + Settings — above avatar */}
-        <div className="flex flex-col items-center gap-4 mt-auto mb-4">
-          {/* Feature 8: Create Group button */}
-          <button onClick={()=>setShowGroupModal(true)} title="Create Group"
-            className={`relative transition-all scale-95 active:scale-90 ${isDark?"text-white/30 hover:text-[#6C5CE7]":"text-slate-400 hover:text-[#6C5CE7]"} duration-200`}>
-            <span className="material-symbols-outlined text-2xl">group_add</span>
+        {/* BOTTOM SECTION (Divider + Utilities + Desktop Profile) */}
+        <div className="flex flex-row md:flex-col items-center md:mt-auto gap-1 md:gap-1 px-2 md:px-2">
+          {/* Divider */}
+          <div className={`hidden md:block w-8 h-px mx-auto my-2 ${isDark ? "bg-white/10" : "bg-slate-200"}`} />
+
+          {/* Bottom utility buttons */}
+          <button onClick={() => setShowGroupModal(true)} title="Create Group"
+            className={`relative flex flex-col items-center justify-center gap-0.5 w-12 h-12 md:w-full md:h-auto md:py-2.5 md:px-1 rounded-2xl transition-all duration-200
+              ${isDark ? "text-white/35 hover:bg-white/5 hover:text-white/70" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}>
+            <span className="material-symbols-outlined text-[20px]">group_add</span>
+            <span className="hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all opacity-0">Group</span>
           </button>
 
-          {/* Feature 4: AI Bot */}
-          <button onClick={()=>setActiveTab("ai")} title="ChatVerse AI"
-            className={"relative transition-all scale-95 active:scale-90 "+(activeTab==="ai"
-              ?"text-[#6C5CE7] before:content-[''] before:absolute before:-left-5 before:w-1 before:h-6 before:bg-[#6C5CE7] before:rounded-r-full"
-              :(isDark?"text-white/30 hover:text-[#6C5CE7]":"text-slate-400 hover:text-[#6C5CE7]")+" duration-200")}>
-            <span className="material-symbols-outlined text-2xl">smart_toy</span>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.8)]" />
+          <button onClick={() => setActiveTab("ai")} title="ChatVerse AI"
+            className={`relative flex flex-col items-center justify-center gap-0.5 w-12 h-12 md:w-full md:h-auto md:py-2.5 md:px-1 rounded-2xl transition-all duration-200
+              ${activeTab === "ai"
+                ? isDark ? "bg-[#6C5CE7]/15 text-[#6C5CE7]" : "bg-[#6C5CE7]/10 text-[#6C5CE7]"
+                : isDark ? "text-white/35 hover:bg-white/5 hover:text-white/70" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              }`}>
+            <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.8)]" />
+            <span className={`hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all ${activeTab === "ai" ? "opacity-100" : "opacity-0"}`}>AI</span>
           </button>
 
-          {/* Settings */}
-          <button onClick={()=>setActiveTab("settings")} title="Settings"
-            className={"relative transition-all scale-95 active:scale-90 "+(activeTab==="settings"
-              ?"text-[#6C5CE7] before:content-[''] before:absolute before:-left-5 before:w-1 before:h-6 before:bg-[#6C5CE7] before:rounded-r-full"
-              :(isDark?"text-white/30 hover:text-[#6C5CE7]":"text-slate-400 hover:text-[#6C5CE7]")+" duration-200")}>
-            <span className="material-symbols-outlined text-2xl">settings</span>
+          <button onClick={() => setActiveTab("settings")} title="Settings"
+            className={`relative flex flex-col items-center justify-center gap-0.5 w-12 h-12 md:w-full md:h-auto md:py-2.5 md:px-1 rounded-2xl transition-all duration-200
+              ${activeTab === "settings"
+                ? isDark ? "bg-[#6C5CE7]/15 text-[#6C5CE7]" : "bg-[#6C5CE7]/10 text-[#6C5CE7]"
+                : isDark ? "text-white/35 hover:bg-white/5 hover:text-white/70" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              }`}>
+            <span className="material-symbols-outlined text-[20px]">settings</span>
+            <span className={`hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all ${activeTab === "settings" ? "opacity-100" : "opacity-0"}`}>Settings</span>
+          </button>
+
+          {/* Profile avatar — desktop bottom, hidden on mobile */}
+          <button onClick={() => setActiveTab("settings")} title="My Profile"
+            className="hidden md:flex mt-4 mb-2 mx-auto relative group shrink-0">
+            {(settings.avatarUrl || user?.avatar) ? (
+              <img
+                src={settings.avatarUrl || (user?.avatar ? API + user.avatar : null)}
+                alt="profile"
+                className="w-10 h-10 rounded-2xl object-cover ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all shadow-lg"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center font-bold text-white text-base shadow-lg ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all">
+                {user?.username?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm" />
           </button>
         </div>
+
+        {/* Profile — mobile only, leftmost */}
+        <button onClick={() => setActiveTab("settings")} title="My Profile"
+          className="md:hidden relative shrink-0 ml-1 mr-2">
+          {(settings.avatarUrl || user?.avatar) ? (
+            <img src={settings.avatarUrl || (user?.avatar ? API + user.avatar : null)} alt="profile"
+              className="w-8 h-8 rounded-xl object-cover ring-2 ring-[#6C5CE7]/40" />
+          ) : (
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center font-bold text-white text-sm">
+              {user?.username?.[0]?.toUpperCase() || "?"}
+            </div>
+          )}
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
+        </button>
 
       </aside>
 
       {/* ── Main shell ───────────────────────────────────────────────────── */}
-      <main className="ml-16 flex w-full h-full overflow-hidden">
+      <main className="flex w-full h-full overflow-hidden pb-16 md:pb-0 md:ml-16 gap-4 p-4">
 
         {/* Chats list — resizable panel */}
-        {activeTab==="chats" && (
-          <section className={`h-full flex flex-col transition-colors duration-300 relative ${panelBg}`}
-            style={{ width: panelWidth, minWidth: 240, maxWidth: 480, animation:"slideIn 0.3s ease-out", flexShrink: 0 }}>
+        {activeTab === "chats" && (
+          <section className={`h-full flex flex-col transition-colors duration-300 relative rounded-2xl overflow-hidden ${panelBg}
+            ${activeContact && activeTab === "chats" ? "max-md:hidden flex" : "flex"} max-md:!w-full`}
+            style={{ width: panelWidth, minWidth: 240, maxWidth: 480, animation: "slideIn 0.3s ease-out", flexShrink: 0 }}>
 
             {/* Drag handle on right edge */}
             <div onMouseDown={startDrag}
               className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 group transition-colors
-                ${isDark?"hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60":"hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
+                ${isDark ? "hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60" : "hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`}
               title="Drag to resize" />
             <div className="px-6 py-6">
               <div className="flex items-center justify-between mb-6">
                 <PanelTitle text="ChatVerse" />
-                <button className={`p-2 rounded-full transition-colors ${isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
+                <button className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
                   <span className={`material-symbols-outlined ${textSecondary}`}>edit_square</span>
                 </button>
               </div>
@@ -1615,105 +3278,168 @@ export default function ChatPage() {
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                   <span className={`material-symbols-outlined text-sm ${textSecondary}`}>search</span>
                 </div>
-                <input className={`w-full border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-[#6C5CE7] outline-none transition-all ${isDark?"bg-white/10 text-white placeholder:text-white/30":"bg-surface-container-low"}`}
-                  placeholder="Search messages..." value={search} onChange={e=>setSearch(e.target.value)} />
+                <input className={`w-full border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-[#6C5CE7] outline-none transition-all ${isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-surface-container-low"}`}
+                  placeholder="Search messages..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className="px-6 py-2">
-                <span className={`text-[10px] font-extrabold tracking-widest uppercase ${isDark?"text-white/30":"text-on-surface-variant/60"}`}>{search?"Results":"Recent"}</span>
+                <span className={`text-[10px] font-extrabold tracking-widest uppercase ${isDark ? "text-white/30" : "text-on-surface-variant/60"}`}>{search ? "Results" : "Recent"}</span>
               </div>
               <div className="flex flex-col">
                 {displayContacts.map(contact => (
                   <ConversationRow key={contact._id} contact={contact}
-                    unread={unreadMap[contact._id]||0}
-                    lastMsg={lastMsgMap[contact._id]||null}
-                    active={activeContact?._id===contact._id}
-                    onClick={()=>{setActiveContact(contact);setSearch("");}}
+                    unread={unreadMap[contact._id] || 0}
+                    lastMsg={lastMsgMap[contact._id] || null}
+                    active={activeContact?._id === contact._id}
+                    onClick={() => { setActiveContact(contact); setSearch(""); }}
                     isOnline={isOnline(contact._id)} />
                 ))}
-                {displayContacts.length===0&&<p className={`text-center text-sm mt-8 px-6 ${textSecondary}`}>{search?"No users found":"No contacts yet"}</p>}
+                {displayContacts.length === 0 && <p className={`text-center text-sm mt-8 px-6 ${textSecondary}`}>{search ? "No users found" : "No contacts yet"}</p>}
               </div>
             </div>
           </section>
         )}
 
-        {activeTab==="contacts" && <ContactsPanel contacts={contacts.filter(c=>c._id!==user?._id)} onStartChat={c=>{setActiveContact(c);setActiveTab("chats");}} isOnline={isOnline} />}
-        {activeTab==="calls"    && <CallsPanel contacts={contacts.filter(c=>c._id!==user?._id)} onCall={startCall} isOnline={isOnline} />}
-        {activeTab==="stories"  && <StoriesPanel contacts={contacts.filter(c=>c._id!==user?._id)} currentUser={user} />}
-        {activeTab==="settings" && <SettingsPanel user={user} logout={logout} />}
+        {activeTab === "contacts" && <ContactsPanel contacts={contacts.filter(c => c._id !== user?._id)} onStartChat={c => { setActiveContact(c); setActiveTab("chats"); }} isOnline={isOnline} />}
+        {activeTab === "calls" && <CallsPanel contacts={contacts.filter(c => c._id !== user?._id)} onCall={startCall} isOnline={isOnline} />}
+        {activeTab === "stories" && <StoriesPanel contacts={contacts.filter(c => c._id !== user?._id)} currentUser={user} />}
+        {activeTab === "settings" && <SettingsPanel user={user} logout={logout} />}
         {/* Feature 4: AI Bot Panel */}
-        {activeTab==="ai" && <AIBotPanel isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} />}
+        {activeTab === "ai" && <AIBotPanel isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} />}
+        {/* Go Live Panel */}
+        {activeTab === "live" && <GoLivePanel contacts={contacts.filter(c => c._id !== user?._id)} currentUser={user} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} chatBg={chatBg} panelBg={panelBg} socket={socket} liveSession={liveSession} setLiveSession={setLiveSession} />}
 
         {/* ── Chat window ──────────────────────────────────────────────── */}
-        {activeContact && activeTab==="chats" ? (
-          <section className={`flex-1 h-full flex flex-col relative transition-colors duration-300 ${chatBg}`}>
+        {activeContact && activeTab === "chats" ? (
+          <section className={`flex-1 h-full flex flex-col relative transition-colors duration-300 rounded-2xl overflow-hidden ${chatBg} max-md:w-full`}>
 
             {/* Header */}
-            <header className={`flex items-center justify-between px-6 py-4 backdrop-blur-xl z-20 shadow-[0px_12px_32px_rgba(83,65,205,0.06)] transition-colors duration-300 ${headerBg}`}>
-              <div className="flex items-center gap-4">
+            <header className={`flex items-center justify-between px-4 md:px-6 py-4 backdrop-blur-xl z-20 shadow-[0px_12px_32px_rgba(83,65,205,0.06)] transition-colors duration-300 ${headerBg}`}>
+              <div className="flex items-center gap-2 md:gap-4">
+                <button className="md:hidden p-1.5 -ml-2 mr-1 rounded-full transition-colors hover:bg-black/5" onClick={() => setActiveContact(null)}>
+                  <span className={`material-symbols-outlined ${textPrimary}`}>arrow_back</span>
+                </button>
                 <div className="relative">
                   <Avatar user={activeContact} size="sm" />
-                  {isOnline(activeContact._id)&&settings.showOnlineStatus&&!activeContact.isAI&&(
+                  {isOnline(activeContact._id) && settings.showOnlineStatus && !activeContact.isAI && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
                   )}
                 </div>
                 <div>
                   <h2 className={`text-sm font-bold ${textPrimary}`}>{activeContact.username}</h2>
-                  <span className={`text-[10px] font-medium ${activeContact.isAI?"text-[#6C5CE7]":isOnline(activeContact._id)?"text-green-500":textSecondary}`}>
+                  <span className={`text-[10px] font-medium ${activeContact.isAI ? "text-[#6C5CE7]" : isOnline(activeContact._id) ? "text-green-500" : textSecondary}`}>
                     {activeContact.isAI ? "AI Assistant · Always online" :
-                     activeContact.isGroup ? `${activeContact.members?.length||0} members` :
-                     partnerTyping&&settings.showTypingIndicator ? "typing..." :
-                     isOnline(activeContact._id)?"Online":"Offline"}
+                      activeContact.isGroup ? `${activeContact.members?.length || 0} members` :
+                        partnerTyping && settings.showTypingIndicator ? "typing..." :
+                          isOnline(activeContact._id) ? "Online" : "Offline"}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {!activeContact.isAI && !activeContact.isGroup && (<>
-                  <button onClick={()=>setCallData({userId:activeContact._id,myId:user._id,callType:"video",name:activeContact.username})}
-                    className={`p-2 rounded-full transition-all ${isDark?"hover:bg-white/10":"hover:bg-slate-100"}`} title="Video call">
-                    <span className="material-symbols-outlined text-[#6C5CE7]">videocam</span>
+              {/* ── Header action buttons ── */}
+              <div className="flex items-center gap-1">
+                {!activeContact.isAI && !activeContact.isGroup && (
+                  // Call button group — subtle grouped look
+                  <div className={`flex items-center rounded-xl overflow-hidden ${isDark ? "bg-white/5" : "bg-slate-100"} mr-1`}>
+                    <button
+                      onClick={() => setCallData({ userId: activeContact._id, myId: user._id, callType: "voice", name: activeContact.username })}
+                      className={`p-2.5 transition-all hover:bg-[#6C5CE7]/15 group`}
+                      title="Voice call"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">call</span>
+                    </button>
+                    <div className={`w-px h-5 ${isDark ? "bg-white/10" : "bg-slate-200"}`} />
+                    <button
+                      onClick={() => setCallData({ userId: activeContact._id, myId: user._id, callType: "video", name: activeContact.username })}
+                      className={`p-2.5 transition-all hover:bg-[#6C5CE7]/15 group`}
+                      title="Video call"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">videocam</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* More options dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowInfoMenu(v => !v)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all
+                      ${showInfoMenu
+                        ? "bg-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30"
+                        : isDark ? "hover:bg-white/8 text-white/50 hover:text-white" : "hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                      }`}
+                    title="Chat options"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">more_vert</span>
                   </button>
-                  <button onClick={()=>setCallData({userId:activeContact._id,myId:user._id,callType:"voice",name:activeContact.username})}
-                    className={`p-2 rounded-full transition-all ${isDark?"hover:bg-white/10":"hover:bg-slate-100"}`} title="Voice call">
-                    <span className="material-symbols-outlined text-[#6C5CE7]">call</span>
-                  </button>
-                </>)}
-                <button className={`p-2 rounded-full transition-all ${isDark?"hover:bg-white/10":"hover:bg-slate-100"}`}>
-                  <span className={`material-symbols-outlined ${textSecondary}`}>info</span>
-                </button>
+                  {showInfoMenu && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowInfoMenu(false)} />
+                      <div className={`absolute right-0 top-11 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden
+                        ${isDark ? "bg-[#1e1f2a] border-white/8" : "bg-white border-slate-200/80"}`}
+                        style={{ animation: "fadeUp 0.15s ease-out" }}>
+                        {/* Header label */}
+                        <div className={`px-4 pt-3 pb-1.5 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-white/30" : "text-slate-400"}`}>
+                          Chat Actions
+                        </div>
+                        {/* Clear Chat */}
+                        <button
+                          onClick={clearChat}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
+                            ${isDark ? "hover:bg-red-500/10 text-red-400" : "hover:bg-red-50 text-red-500"}`}
+                        >
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${isDark ? "bg-red-500/10" : "bg-red-100"}`}>
+                            <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                          </span>
+                          <span>Clear Chat</span>
+                        </button>
+                        {/* Export as PDF */}
+                        <button
+                          onClick={exportChatAsPdf}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors mb-1
+                            ${isDark ? "hover:bg-white/5 text-white/80" : "hover:bg-slate-50 text-slate-700"}`}
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-[#6C5CE7]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[16px] text-[#6C5CE7]">picture_as_pdf</span>
+                          </span>
+                          <span>Export as PDF</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </header>
 
             {/* Feature 2: Reply preview bar above input */}
             {replyTo && (
-              <div className={`px-6 py-1 ${isDark?"bg-[#1a1b23]/80":"bg-white/80"} backdrop-blur-sm border-b ${isDark?"border-white/5":"border-outline-variant/20"}`}>
-                <ReplyPreview msg={replyTo} onClear={()=>setReplyTo(null)} isDark={isDark} />
+              <div className={`px-6 py-1 ${isDark ? "bg-[#1a1b23]/80" : "bg-white/80"} backdrop-blur-sm border-b ${isDark ? "border-white/5" : "border-outline-variant/20"}`}>
+                <ReplyPreview msg={replyTo} onClear={() => setReplyTo(null)} isDark={isDark} />
               </div>
             )}
 
             {/* Messages */}
-            <div className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col ${compact?"px-4 py-3 gap-2":"px-8 py-6 gap-4"}`}
-              style={{background:chatBackground,backgroundSize:"500px 500px"}}>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col ${compact ? "px-4 py-3 gap-2" : "px-8 py-6 gap-4"}`}
+              style={{ background: chatBackground, backgroundSize: "500px 500px" }}>
               <div className="flex justify-center my-4">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${isDark?"bg-white/10 text-white/40":"bg-surface-container text-on-surface-variant"}`}>Today</span>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${isDark ? "bg-white/10 text-white/40" : "bg-surface-container text-on-surface-variant"}`}>Today</span>
               </div>
 
-              {messages.map((msg,i) => {
-                const isSent = (msg.sender._id||msg.sender)===user._id;
-                const msgReactions = reactions[msg._id]||[];
+              {messages.map((msg, i) => {
+                const isSent = (msg.sender._id || msg.sender) === user._id;
+                const msgReactions = reactions[msg._id] || [];
                 return isSent ? (
-                  <div key={msg._id||i} className="flex items-end flex-col gap-1 ml-auto max-w-[70%] pr-2" style={{animation:"fadeUp 0.2s ease-out"}}>
+                  <div key={msg._id || i} className="flex items-end flex-col gap-1 ml-auto max-w-[70%] pr-2" style={{ animation: "fadeUp 0.2s ease-out" }}>
                     <MessageBubble msg={msg} isSent={true} isDark={isDark} onReact={handleReaction}
                       onReply={m => setReplyTo({ ...m, messageId: m._id, senderName: user?.username || "You" })}
                       reactions={msgReactions} />
                     <span className={`text-[10px] pr-1 ${textSecondary}`}>
                       {formatTime(msg.createdAt)}
-                      {settings.showReadReceipts&&<span className={msg.read?" text-[#6C5CE7]":" opacity-50"}>{msg.read?" ✓✓":" ✓"}</span>}
+                      {settings.showReadReceipts && <span className={msg.read ? " text-[#6C5CE7]" : " opacity-50"}>{msg.read ? " ✓✓" : " ✓"}</span>}
                     </span>
                   </div>
                 ) : (
-                  <div key={msg._id||i} className="flex items-start gap-3 max-w-[70%] pl-2" style={{animation:"fadeUp 0.2s ease-out"}}>
+                  <div key={msg._id || i} className="flex items-start gap-3 max-w-[70%] pl-2" style={{ animation: "fadeUp 0.2s ease-out" }}>
                     <Avatar user={activeContact} size="sm" />
                     <div className="flex flex-col gap-1">
                       <MessageBubble msg={msg} isSent={false} isDark={isDark} onReact={handleReaction}
@@ -1725,10 +3451,10 @@ export default function ChatPage() {
                 );
               })}
 
-              {partnerTyping&&settings.showTypingIndicator&&(
+              {partnerTyping && settings.showTypingIndicator && (
                 <div className="flex items-center gap-2">
-                  <div className={`px-4 py-3 rounded-2xl received-bubble flex gap-1 ${isDark?"bg-white/10":"bg-surface-container-lowest"}`}>
-                    {[0,1,2].map(i=><span key={i} className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark?"bg-white/40":"bg-on-surface-variant"}`} style={{animationDelay:i*0.15+"s"}} />)}
+                  <div className={`px-4 py-3 rounded-2xl received-bubble flex gap-1 ${isDark ? "bg-white/10" : "bg-surface-container-lowest"}`}>
+                    {[0, 1, 2].map(i => <span key={i} className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? "bg-white/40" : "bg-on-surface-variant"}`} style={{ animationDelay: i * 0.15 + "s" }} />)}
                   </div>
                 </div>
               )}
@@ -1737,95 +3463,95 @@ export default function ChatPage() {
 
             {/* Feature 1 & 5: Emoji + Sticker pickers */}
             {showEmojiPicker && (
-              <div className={`absolute bottom-20 left-20 rounded-2xl shadow-xl border p-3 z-30 grid grid-cols-9 gap-1 ${isDark?"bg-[#1a1b23] border-white/10":"bg-white border-outline-variant"}`}>
-                {emojis.map(e=><button key={e} onClick={()=>{setText(p=>p+e);setShowEmojiPicker(false);}} className={`text-xl p-1.5 rounded-lg transition-colors ${isDark?"hover:bg-white/10":"hover:bg-surface-container"}`}>{e}</button>)}
+              <div className={`absolute bottom-20 left-20 rounded-2xl shadow-xl border p-3 z-30 grid grid-cols-9 gap-1 ${isDark ? "bg-[#1a1b23] border-white/10" : "bg-white border-outline-variant"}`}>
+                {emojis.map(e => <button key={e} onClick={() => { setText(p => p + e); setShowEmojiPicker(false); }} className={`text-xl p-1.5 rounded-lg transition-colors ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container"}`}>{e}</button>)}
               </div>
             )}
             {/* Feature 5: Sticker picker */}
             {showStickerPicker && (
-              <StickerPicker onSend={sendSticker} onClose={()=>setShowStickerPicker(false)} isDark={isDark} />
+              <StickerPicker onSend={sendSticker} onClose={() => setShowStickerPicker(false)} isDark={isDark} />
             )}
 
             {/* Input bar */}
-            <footer className={`p-4 flex items-center gap-3 relative transition-colors ${isDark?"bg-[#1a1b23] border-t border-white/5":"bg-surface-container-lowest"}`}>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*,audio/*,video/*,.zip,.pdf,.doc,.docx" />
+            <footer className={`p-4 flex items-center gap-3 relative transition-colors ${isDark ? "bg-[#1a1b23] border-t border-white/5" : "bg-surface-container-lowest"}`}>
+              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*" />
 
               <div className="flex items-center gap-0.5">
                 {/* Attach */}
-                <button onClick={()=>fileInputRef.current?.click()} title="Attach file"
-                  className={`p-2 rounded-full transition-colors group ${isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
+                <button onClick={() => fileInputRef.current?.click()} title="Attach file"
+                  className={`p-2 rounded-full transition-colors group ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
                   <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${textSecondary}`}>add_circle</span>
                 </button>
                 {/* Image */}
-                <button onClick={()=>fileInputRef.current?.click()} title="Send image"
-                  className={`p-2 rounded-full transition-colors group ${isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
+                <button onClick={() => fileInputRef.current?.click()} title="Send image"
+                  className={`p-2 rounded-full transition-colors group ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
                   <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${textSecondary}`}>image</span>
                 </button>
                 {/* Emoji */}
-                <button onClick={()=>{setShowEmojiPicker(v=>!v);setShowStickerPicker(false);}} title="Emoji"
-                  className={`p-2 rounded-full transition-colors group ${isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
-                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${showEmojiPicker?"text-[#6C5CE7]":textSecondary}`}>mood</span>
+                <button onClick={() => { setShowEmojiPicker(v => !v); setShowStickerPicker(false); }} title="Emoji"
+                  className={`p-2 rounded-full transition-colors group ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
+                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${showEmojiPicker ? "text-[#6C5CE7]" : textSecondary}`}>mood</span>
                 </button>
                 {/* Feature 5: Sticker — uses 'kid_star' icon, clearly different from emoji */}
-                <button onClick={()=>{setShowStickerPicker(v=>!v);setShowEmojiPicker(false);}} title="Stickers"
-                  className={`p-2 rounded-full transition-colors group ${isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
-                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${showStickerPicker?"text-[#6C5CE7]":textSecondary}`}>kid_star</span>
+                <button onClick={() => { setShowStickerPicker(v => !v); setShowEmojiPicker(false); }} title="Stickers"
+                  className={`p-2 rounded-full transition-colors group ${isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
+                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${showStickerPicker ? "text-[#6C5CE7]" : textSecondary}`}>kid_star</span>
                 </button>
                 {/* Voice */}
                 <button onMouseDown={startVoiceRecording} onMouseUp={stopVoiceRecording} onTouchStart={startVoiceRecording} onTouchEnd={stopVoiceRecording}
                   title="Hold to record voice"
-                  className={`relative p-2 rounded-full transition-colors group ${recordingVoice?"bg-red-50":isDark?"hover:bg-white/10":"hover:bg-surface-container-low"}`}>
-                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${recordingVoice?"text-red-500":textSecondary}`}>{recordingVoice?"radio_button_checked":"mic"}</span>
-                  {recordingVoice&&<span className="absolute inset-0 rounded-full animate-ping bg-red-200 opacity-60" />}
+                  className={`relative p-2 rounded-full transition-colors group ${recordingVoice ? "bg-red-50" : isDark ? "hover:bg-white/10" : "hover:bg-surface-container-low"}`}>
+                  <span className={`material-symbols-outlined group-hover:text-[#6C5CE7] ${recordingVoice ? "text-red-500" : textSecondary}`}>{recordingVoice ? "radio_button_checked" : "mic"}</span>
+                  {recordingVoice && <span className="absolute inset-0 rounded-full animate-ping bg-red-200 opacity-60" />}
                 </button>
               </div>
 
               <div className="flex-1">
                 <input
-                  className={`w-full border-none rounded-full py-3 px-6 text-sm focus:ring-2 focus:ring-[#6C5CE7] outline-none transition-all ${isDark?"bg-white/10 text-white placeholder:text-white/30":"bg-surface-container-low placeholder:text-on-surface-variant/50"}`}
-                  placeholder={recordingVoice?"Recording… release to send":replyTo?"Reply to message...":"Type a message..."}
+                  className={`w-full border-none rounded-full py-3 px-6 text-sm focus:ring-2 focus:ring-[#6C5CE7] outline-none transition-all ${isDark ? "bg-white/10 text-white placeholder:text-white/30" : "bg-surface-container-low placeholder:text-on-surface-variant/50"}`}
+                  placeholder={recordingVoice ? "Recording… release to send" : replyTo ? "Reply to message..." : "Type a message..."}
                   value={text} onChange={handleTextChange} onKeyDown={handleKeyDown} disabled={recordingVoice} />
               </div>
 
               <button onClick={sendMessage} disabled={!text.trim()}
                 className="w-11 h-11 flex items-center justify-center rounded-full text-white shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-40"
-                style={{background:`linear-gradient(135deg,${settings.accentColor},${settings.accentColor}cc)`,boxShadow:`0 4px 15px ${settings.accentColor}40`}}>
+                style={{ background: `linear-gradient(135deg,${settings.accentColor},${settings.accentColor}cc)`, boxShadow: `0 4px 15px ${settings.accentColor}40` }}>
                 <span className="material-symbols-outlined text-xl">send</span>
               </button>
             </footer>
           </section>
 
-        ) : activeTab==="settings" ? (
+        ) : activeTab === "settings" ? (
           /* Settings tab right panel — live profile preview */
           <ProfilePreviewPanel isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} chatBg={chatBg} user={user} settings={settings} />
 
-        ) : activeTab==="chats" ? (
-          <section className={`flex-1 h-full flex flex-col items-center justify-center gap-5 transition-colors ${chatBg}`}>
-            <div className="w-24 h-24 rounded-3xl bg-[#6C5CE7]/10 flex items-center justify-center" style={{animation:"glowPulse 2.5s ease-in-out infinite"}}>
+        ) : activeTab === "chats" ? (
+          <section className={`flex-1 h-full flex flex-col items-center justify-center gap-5 transition-colors rounded-2xl overflow-hidden ${chatBg}`}>
+            <div className="w-24 h-24 rounded-3xl bg-[#6C5CE7]/10 flex items-center justify-center" style={{ animation: "glowPulse 2.5s ease-in-out infinite" }}>
               <span className="material-symbols-outlined text-6xl text-[#6C5CE7]">chat_bubble</span>
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-extrabold mb-1" style={{background:"linear-gradient(135deg,#6C5CE7,#a19afd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Welcome to ChatVerse</h2>
+              <h2 className="text-xl font-extrabold mb-1" style={{ background: "linear-gradient(135deg,#6C5CE7,#a19afd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Welcome to ChatVerse</h2>
               <p className={`text-sm max-w-xs ${textSecondary}`}>Select a contact or start a new group chat</p>
             </div>
-            <button onClick={()=>setShowGroupModal(true)}
+            <button onClick={() => setShowGroupModal(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:scale-105 active:scale-95"
-              style={{background:"linear-gradient(135deg,#6C5CE7,#a19afd)"}}>
+              style={{ background: "linear-gradient(135deg,#6C5CE7,#a19afd)" }}>
               <span className="material-symbols-outlined text-sm">group_add</span>
               Create Group Chat
             </button>
           </section>
 
         ) : (
-          <section className={`flex-1 h-full flex flex-col items-center justify-center gap-5 transition-colors ${chatBg}`}>
+          <section className={`flex-1 h-full flex flex-col items-center justify-center gap-5 transition-colors rounded-2xl overflow-hidden ${chatBg}`}>
             <div className="w-20 h-20 rounded-3xl bg-[#6C5CE7]/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-5xl text-[#6C5CE7]">
-                {activeTab==="contacts"?"group":activeTab==="calls"?"call":activeTab==="stories"?"amp_stories":activeTab==="ai"?"smart_toy":"settings"}
+                {activeTab === "contacts" ? "group" : activeTab === "calls" ? "call" : activeTab === "stories" ? "amp_stories" : activeTab === "ai" ? "smart_toy" : "settings"}
               </span>
             </div>
             <div className="text-center">
               <h2 className={`text-lg font-bold mb-1 ${textPrimary}`}>
-                {activeTab==="contacts"?"Click a contact to chat":activeTab==="calls"?"Hover a contact to call":activeTab==="stories"?"Tap a story to view":activeTab==="ai"?"Chat with AI":"Adjust your preferences"}
+                {activeTab === "contacts" ? "Click a contact to chat" : activeTab === "calls" ? "Hover a contact to call" : activeTab === "stories" ? "Tap a story to view" : activeTab === "ai" ? "Chat with AI" : "Adjust your preferences"}
               </h2>
               <p className={`text-sm ${textSecondary}`}>Use the panel on the left</p>
             </div>
@@ -1834,4 +3560,4 @@ export default function ChatPage() {
       </main>
     </div>
   );
-}
+};

@@ -5,18 +5,43 @@ import { useAuth } from "../context/AuthContext";
 
 const API = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
 
+// ── Resizable Panel Hook (local copy for SettingsPanel) ───────────────────────
+function useResizablePanel(defaultWidth = 320, min = 240, max = 520) {
+  const [width, setWidth] = useState(defaultWidth);
+  const startDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    const onMove = (me) => {
+      setWidth(Math.min(max, Math.max(min, startW + me.clientX - startX)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+  return { width, startDrag };
+}
+
 // ── Reusable Toggle ───────────────────────────────────────────────────────────
 function Toggle({ checked, onChange, disabled = false }) {
+  const isChecked = !!checked;
   return (
     <button
-      onClick={() => !disabled && onChange(!checked)}
+      type="button"
+      role="switch"
+      aria-checked={isChecked}
+      aria-disabled={disabled}
+      onClick={() => !disabled && onChange(!isChecked)}
       disabled={disabled}
       className={`relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none
-        ${checked ? "bg-[#6C5CE7] shadow-[0_0_8px_rgba(108,92,231,0.5)]" : "bg-outline-variant"}
+        ${isChecked ? "bg-[#6C5CE7] shadow-[0_0_8px_rgba(108,92,231,0.5)]" : "bg-outline-variant"}
         ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
     >
-      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300
-        ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 pointer-events-none
+        ${isChecked ? "translate-x-[22px]" : "translate-x-0.5"}`} />
     </button>
   );
 }
@@ -45,6 +70,7 @@ function Divider() {
 export default function SettingsPanel({ user, logout }) {
   const { settings, updateSetting, updateMany, resetSettings } = useAppSettings();
   const { token } = useAuth();
+  const { width: panelWidth, startDrag } = useResizablePanel(320);
   const [activeSection, setActiveSection] = useState(null);
   const [profileForm, setProfileForm] = useState({ displayName: settings.displayName || user?.username || "", bio: settings.bio });
   const [profileSaving, setProfileSaving] = useState(false);
@@ -136,10 +162,11 @@ export default function SettingsPanel({ user, logout }) {
 
   return (
     <section
-      className={`w-80 h-full flex flex-col transition-colors duration-300
+      className={`h-full flex flex-col transition-colors duration-300 relative rounded-2xl overflow-hidden max-md:!w-full max-md:!max-w-full
         ${settings.theme === "dark" ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest"}`}
-      style={{ animation: "slideIn 0.3s ease-out" }}
+      style={{ width: panelWidth, minWidth: 240, maxWidth: 520, animation: "slideIn 0.3s ease-out", flexShrink: 0 }}
     >
+      <div onMouseDown={startDrag} className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize z-10 group transition-colors max-md:hidden ${settings.theme==="dark"?"hover:bg-[#6C5CE7]/40 active:bg-[#6C5CE7]/60":"hover:bg-[#6C5CE7]/30 active:bg-[#6C5CE7]/50"}`} title="Drag to resize" />
       {/* Header */}
       <div className="px-6 pt-6 pb-4 shrink-0">
         <h1 className={`text-lg font-bold ${settings.theme === "dark" ? "text-white" : "text-on-surface"}`}

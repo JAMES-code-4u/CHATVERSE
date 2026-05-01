@@ -29,7 +29,7 @@ export const SocketProvider = ({ children }) => {
     }
   }, [token, user]);
 
-  const isOnline = (userId) => onlineUsers.includes(userId?.toString());
+  const isOnline = (userId) => onlineUsers.some(u => (u._id?.toString() || u) === userId?.toString());
 
   return (
     <SocketContext.Provider value={{ socket: socketRef.current, onlineUsers, isOnline, incomingCall, setIncomingCall }}>

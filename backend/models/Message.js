@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const messageSchema = new mongoose.Schema(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    receiverGroup: { type: mongoose.Schema.Types.ObjectId, ref: "Group" },
     content: { type: String, default: "" },
     type: {
       type: String,
@@ -15,6 +16,12 @@ const messageSchema = new mongoose.Schema(
     fileSize: { type: Number, default: 0 },
     read: { type: Boolean, default: false },
     readAt: { type: Date },
+    reactions: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        emoji: { type: String },
+      }
+    ],
     // Reply-to: stores a snapshot of the original message so both sides see it
     replyTo: {
       type: new mongoose.Schema({

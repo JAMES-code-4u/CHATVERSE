@@ -37,6 +37,8 @@ router.get("/:id", protect, async (req, res) => {
   }
 });
 
+const { broadcastOnlineUsers } = require("../socket/socketHandler");
+
 // PUT /api/users/avatar
 router.put("/avatar", protect, upload.single("avatar"), async (req, res) => {
   try {
@@ -46,6 +48,10 @@ router.put("/avatar", protect, upload.single("avatar"), async (req, res) => {
       { avatar: avatarUrl },
       { new: true }
     ).select("-password");
+    
+    // Broadcast updated avatar to all online users
+    await broadcastOnlineUsers();
+    
     res.json({ user });
   } catch (err) {
     res.status(500).json({ message: err.message });

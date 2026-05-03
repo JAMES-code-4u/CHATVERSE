@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { useAuth } from "../context/AuthContext";
 
-const API = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+const API = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
 // ── Resizable Panel Hook (local copy for SettingsPanel) ───────────────────────
 function useResizablePanel(defaultWidth = 320, min = 240, max = 520) {

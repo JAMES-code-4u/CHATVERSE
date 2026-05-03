@@ -7,7 +7,7 @@ import { useAppSettings } from "../context/AppSettingsContext";
 import IncomingCallAlert from "../components/IncomingCallAlert";
 import SettingsPanel from "../components/SettingsPanel";
 
-const API = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+const API = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
 // ── Background SVG variables ──────────────────────────────────────────────────
 const DARK_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%230d0e16'/%3E%3Cg stroke='%232d2f52' stroke-width='1.1' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.85'%3E%3Cpath d='M30 20l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6z'/%3E%3Cellipse cx='70' cy='35' rx='12' ry='8'/%3E%3Cellipse cx='82' cy='32' rx='9' ry='7'/%3E%3Cellipse cx='58' cy='34' rx='8' ry='6'/%3E%3Cpath d='M130 25 c0-5 8-8 8 0 c0-8 8-5 8 0 c0 6-8 12-8 12 c0 0-8-6-8-12z'/%3E%3Ccircle cx='200' cy='35' r='15'/%3E%3Cpath d='M190 22 l-5-8 4 8'/%3E%3Cpath d='M210 22 l5-8-4 8'/%3E%3Ccircle cx='195' cy='33' r='2.5'/%3E%3Ccircle cx='205' cy='33' r='2.5'/%3E%3Cpath d='M197 39 q3 3 6 0'/%3E%3Cpath d='M192 36 l-8 2'/%3E%3Cpath d='M208 36 l8 2'/%3E%3Cpath d='M270 15 l20 35 l-40 0z'/%3E%3Ccircle cx='270' cy='32' r='3'/%3E%3Ccircle cx='261' cy='38' r='2'/%3E%3Ccircle cx='279' cy='38' r='2'/%3E%3Cpath d='M340 15 l-8 18 h10 l-8 18'/%3E%3Cpath d='M390 20 l15 0 l5 10 l-20 20 l-20-20 l5-10z'/%3E%3Ccircle cx='450' cy='30' r='12'/%3E%3Cline x1='450' y1='42' x2='450' y2='65'/%3E%3Cpath d='M444 24 q6-8 12 0'/%3E%3Cellipse cx='30' cy='110' rx='12' ry='18'/%3E%3Ccircle cx='27' cy='103' r='2'/%3E%3Ccircle cx='33' cy='103' r='2'/%3E%3Cellipse cx='30' cy='109' rx='4' ry='3'/%3E%3Cpath d='M18 112 l-8 5'/%3E%3Cpath d='M42 112 l8 5'/%3E%3Crect x='85' y='100' width='10' height='20' rx='2'/%3E%3Ccircle cx='90' cy='97' r='10'/%3E%3Ccircle cx='83' cy='100' r='8'/%3E%3Ccircle cx='97' cy='100' r='8'/%3E%3Cpath d='M160 75 q0-20 10-30 q10 10 10 30 l-5 15 h-10z'/%3E%3Cpath d='M155 105 l-10 15 10-5'/%3E%3Cpath d='M175 105 l10 15-10-5'/%3E%3Ccircle cx='170' cy='92' r='5'/%3E%3Ccircle cx='240' cy='95' r='6'/%3E%3Ccircle cx='228' cy='88' r='7'/%3E%3Ccircle cx='252' cy='88' r='7'/%3E%3Ccircle cx='228' cy='102' r='7'/%3E%3Ccircle cx='252' cy='102' r='7'/%3E%3Cline x1='240' y1='101' x2='240' y2='125'/%3E%3Cellipse cx='320' cy='100' rx='20' ry='12'/%3E%3Cpath d='M300 100 l-15-10 0 20z'/%3E%3Ccircle cx='335' cy='96' r='3'/%3E%3Cpath d='M385 80 q-15 0-15 20 q0 20 15 20 q-20 0-20-20 q0-20 20-20z'/%3E%3Cpath d='M430 95 l0 25 l40 0 l0-25 l-10 15-10-18-10 18z'/%3E%3Ccircle cx='430' cy='95' r='3'/%3E%3Ccircle cx='450' cy='77' r='3'/%3E%3Ccircle cx='470' cy='95' r='3'/%3E%3Cellipse cx='50' cy='185' rx='18' ry='12'/%3E%3Cpath d='M32 185 q0-20 18-20 q18 0 18 20'/%3E%3Cpath d='M32 185 l-15 5'/%3E%3Cpath d='M40 165 l-2-8 m4 0 l-2 8'/%3E%3Cellipse cx='110' cy='175' rx='20' ry='14'/%3E%3Crect x='102' y='175' width='16' height='16' rx='3'/%3E%3Ccircle cx='100' cy='168' r='4'/%3E%3Ccircle cx='118' cy='165' r='3'/%3E%3Ccircle cx='112' cy='173' r='3'/%3E%3Cpath d='M165 200 q0-35 20-35 q15 0 15 20 l10-15 l0 30 l-15 5 l0 10 l-10 0 l0-10z'/%3E%3Ccircle cx='193' cy='170' r='3'/%3E%3Ccircle cx='260' cy='180' r='16'/%3E%3Cline x1='260' y1='156' x2='260' y2='148'/%3E%3Cline x1='260' y1='204' x2='260' y2='212'/%3E%3Cline x1='236' y1='180' x2='228' y2='180'/%3E%3Cline x1='284' y1='180' x2='292' y2='180'/%3E%3Cpath d='M330 175 q-20-20-25 0 q5 20 25 0'/%3E%3Cpath d='M330 175 q20-20 25 0 q-5 20-25 0'/%3E%3Crect x='395' y='175' width='40' height='35' rx='3'/%3E%3Crect x='393' y='168' width='44' height='10' rx='3'/%3E%3Cline x1='415' y1='168' x2='415' y2='210'/%3E%3Cpath d='M455 170 q0-28 28-28 q28 0 28 28z'/%3E%3Cline x1='469' y1='170' x2='469' y2='200'/%3E%3Cellipse cx='60' cy='270' rx='30' ry='18'/%3E%3Cpath d='M30 270 l-15-10 0 20z'/%3E%3Ccircle cx='140' cy='255' r='18'/%3E%3Cpath d='M140 273 l0 25'/%3E%3Ccircle cx='210' cy='265' r='20'/%3E%3Ccircle cx='197' cy='252' r='9'/%3E%3Ccircle cx='223' cy='252' r='9'/%3E%3Crect x='340' y='268' width='30' height='20' rx='3'/%3E%3Cpath d='M340 268 q15-25 30 0'/%3E%3Ccircle cx='355' cy='248' r='5'/%3E%3Cellipse cx='420' cy='275' rx='14' ry='20'/%3E%3Crect x='50' y='360' width='60' height='40' rx='2'/%3E%3Crect x='46' y='348' width='12' height='20'/%3E%3Crect x='62' y='348' width='12' height='20'/%3E%3Crect x='98' y='348' width='12' height='20'/%3E%3Cellipse cx='155' cy='375' rx='18' ry='12'/%3E%3Ccircle cx='165' cy='362' r='10'/%3E%3Cpath d='M175 364 l10 0 l0 5 l-10 0'/%3E%3Ccircle cx='330' cy='375' r='18'/%3E%3Ccircle cx='315' cy='360' r='10'/%3E%3Ccircle cx='345' cy='360' r='10'/%3E%3Cellipse cx='430' cy='375' rx='35' ry='16'/%3E%3Ccircle cx='430' cy='363' r='6'/%3E%3Cpath d='M80 430 l0-30 q0-15 15-15 q15 0 15 15'/%3E%3Cellipse cx='175' cy='430' rx='22' ry='28'/%3E%3Crect x='167' y='457' width='16' height='12' rx='3'/%3E%3Ccircle cx='270' cy='418' r='8'/%3E%3Cline x1='270' y1='426' x2='270' y2='460'/%3E%3Cpath d='M255 460 q15 8 30 0'/%3E%3Cpath d='M258 435 l-14 0 m28 0 l14 0'/%3E%3Cpath d='M410 420 l0 30 m0-30 l20-8 l0 30'/%3E%3Ccircle cx='410' cy='450' r='5'/%3E%3Ccircle cx='430' cy='442' r='5'/%3E%3Ccircle cx='115' cy='155' r='2'/%3E%3Ccircle cx='300' cy='140' r='2'/%3E%3Ccircle cx='480' cy='160' r='2'/%3E%3Ccircle cx='360' cy='250' r='2'/%3E%3Ccircle cx='490' cy='320' r='2'/%3E%3Ccircle cx='145' cy='340' r='2'/%3E%3Ccircle cx='485' cy='440' r='2'/%3E%3Cpath d='M350 460 l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z'/%3E%3Cpath d='M480 390 l1.5 4h4l-3 2.5 1.5 4-4-2.5-4 2.5 1.5-4-3-2.5h4z'/%3E%3Cpath d='M10 300 l1.5 4h4l-3 2.5 1.5 4-4-2.5-4 2.5 1.5-4-3-2.5h4z'/%3E%3C/g%3E%3C/svg%3E") repeat`;
@@ -402,7 +402,7 @@ function VirtualBgPicker({ current, onChange, onClose, isDark }) {
 function CallModal({ callData, onEnd, isIncoming = false }) {
   const { socket } = useSocket();
   const { token } = useAuth();
-  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
   const [stream, setStream] = useState(null);
   const [callActive, setCallActive] = useState(false);
@@ -958,7 +958,7 @@ function ContactsPanel({ contacts, onStartChat, isOnline }) {
 function CallsPanel({ contacts, onCall, isOnline }) {
   const { settings } = useAppSettings();
   const { token } = useAuth();
-  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
   const isDark = settings.theme === "dark";
   const panelBg = isDark ? "bg-[#1a1b23] border-r border-white/5" : "bg-surface-container-lowest";
   const rowHover = isDark ? "hover:bg-white/8" : "hover:bg-surface-container-low/60";
@@ -1238,7 +1238,7 @@ function StoriesPanel({ contacts, currentUser }) {
 // ── Gemini AI Bot Panel ───────────────────────────────────────────────────────
 function AIBotPanel({ isDark, textPrimary, textSecondary }) {
   const { token } = useAuth();
-  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
   const [aiMessages, setAiMessages] = useState([
     { id: 1, role: "assistant", content: "Hi! I'm ChatVerse AI ✨ powered by Google Gemini. Ask me anything — draft messages, translate, summarize, or just chat!" }
@@ -2344,7 +2344,7 @@ function LiveChatSidebar({ liveChat, liveMsg, setLiveMsg, sendLiveMsg, isDark, t
 
 // ── Profile Preview Panel (right side when settings tab is active) ────────────
 function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user, settings }) {
-  const API_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
   const { updateSetting, updateMany } = useAppSettings();
   const { token } = useAuth();
 

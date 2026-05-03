@@ -11,44 +11,70 @@ const userRoutes       = require("./routes/user");
 const messageRoutes    = require("./routes/messages");
 const aiRoutes         = require("./routes/ai");
 const recordingRoutes  = require("./routes/recordings");
+const groupRoutes      = require("./routes/groups");
 
 const { socketHandler } = require("./socket/socketHandler");
 
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
+// ✅ TRUST PROXY (important for Render)
+app.set("trust proxy", 1);
+
+// ✅ CORS FIX (production safe)
+app.use(cors({
+  origin: "*",   // You can restrict later to frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth",       authRoutes);
 app.use("/api/users",      userRoutes);
 app.use("/api/messages",   messageRoutes);
-app.use("/api/groups",     require("./routes/groups"));
+app.use("/api/groups",     groupRoutes);
 app.use("/api/ai",         aiRoutes);
 app.use("/api/recordings", recordingRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-// MongoDB connection
-mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/chatverse")
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, "../frontend/build")));
+
+// Catch-all route to serve React app for non-API requests
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+});
+
+// ✅ Socket.IO FIX
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
+  transports: ["websocket"]
+});
+
+// Attach socket
+socketHandler(io);
+
+// ✅ MongoDB connection (NO LOCAL FALLBACK)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
-    server.listen(process.env.PORT || 5000, () => {
-      console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
+
+    const PORT = process.env.PORT || 5000;
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
@@ -56,7 +82,5 @@ mongoose
     process.exit(1);
   });
 
-// Socket.io handler
-socketHandler(io);
-
+// Optional export
 module.exports = { app, server, io };

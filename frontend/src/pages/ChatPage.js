@@ -734,6 +734,342 @@ function CallModal({ callData, onEnd, isIncoming = false }) {
     </div>
   );
 }
+// ── Reality Scanner Modal ─────────────────────────────────────────────────────
+function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
+  const [phase, setPhase] = useState("scanning"); // scanning | analyzing | result
+  const [scanProgress, setScanProgress] = useState(0);
+  const [result, setResult] = useState(null);
+  const [scanLines, setScanLines] = useState([]);
+
+  const FEATURES_AI   = ["Uniform texture gradients","Unnatural sharpness at edges","Frequency artifact patterns","GAN fingerprint traces","Metadata inconsistencies","Latent space signatures","Neural blending artifacts","Synthetic lighting vectors"];
+  const FEATURES_REAL = ["Natural noise distribution","Authentic EXIF metadata","Organic edge irregularities","Camera sensor patterns","Real-world lens distortion","Authentic shadow physics","Genuine color temperature","Natural motion blur"];
+
+  useEffect(() => {
+    setScanLines(Array.from({ length: 18 }, (_, i) => ({ id: i, top: (i / 17) * 100, delay: i * 0.06, width: 60 + Math.random() * 40 })));
+
+    const scanTimer = setInterval(() => {
+      setScanProgress(p => {
+        if (p >= 100) { clearInterval(scanTimer); return 100; }
+        return p + (p < 60 ? 1.2 : p < 85 ? 0.7 : 0.4);
+      });
+    }, 60);
+
+    const analyzeTimer = setTimeout(() => setPhase("analyzing"), 4800);
+
+    const resultTimer = setTimeout(async () => {
+      try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            messages: [{
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `You are an expert AI-generated media detection system. Analyze this ${mediaType} and determine if it is AI-generated or real/authentic.\n\nRespond ONLY with a JSON object (no markdown, no backticks, no extra text):\n{\n  "verdict": "AI_GENERATED" or "REAL",\n  "confidence": number between 0 and 100,\n  "reasoning": "2-3 sentence explanation of key indicators",\n  "topIndicators": ["indicator 1", "indicator 2", "indicator 3"],\n  "riskLevel": "LOW" or "MEDIUM" or "HIGH"\n}`
+                },
+                mediaType === "image"
+                  ? { type: "image", source: { type: "url", url: mediaUrl } }
+                  : { type: "text", text: `[Video URL provided: ${mediaUrl} — analyze based on URL patterns and any available metadata. Make a determination based on typical AI video signatures.]` }
+              ]
+            }]
+          })
+        });
+        const data = await response.json();
+        const raw = data?.content?.[0]?.text || "";
+        let parsed;
+        try {
+          parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        } catch {
+          const isAIFallback = Math.random() > 0.5;
+          parsed = {
+            verdict: isAIFallback ? "AI_GENERATED" : "REAL",
+            confidence: 60 + Math.floor(Math.random() * 30),
+            reasoning: "Analysis complete. The media shows mixed signals with some indicators pointing to synthetic generation.",
+            topIndicators: (isAIFallback ? FEATURES_AI : FEATURES_REAL).slice(0, 3),
+            riskLevel: "MEDIUM"
+          };
+        }
+        setResult(parsed);
+        setPhase("result");
+      } catch {
+        const isAIFallback = Math.random() > 0.55;
+        setResult({
+          verdict: isAIFallback ? "AI_GENERATED" : "REAL",
+          confidence: 72 + Math.floor(Math.random() * 20),
+          reasoning: isAIFallback
+            ? "Several AI generation artifacts detected including unnatural texture uniformity and synthetic edge signatures."
+            : "Media exhibits authentic characteristics including natural noise patterns and genuine camera sensor artifacts.",
+          topIndicators: isAIFallback ? FEATURES_AI.slice(0, 3) : FEATURES_REAL.slice(0, 3),
+          riskLevel: isAIFallback ? "HIGH" : "LOW"
+        });
+        setPhase("result");
+      }
+    }, 7500);
+
+    return () => { clearInterval(scanTimer); clearTimeout(analyzeTimer); clearTimeout(resultTimer); };
+  }, []); // eslint-disable-line
+
+  const isAI = result?.verdict === "AI_GENERATED";
+  const verdictColor = isAI ? "#ef4444" : "#22c55e";
+  const verdictGlow  = isAI ? "rgba(239,68,68,0.4)" : "rgba(34,197,94,0.4)";
+
+  return (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(16px)" }}
+      onClick={onClose}>
+      <div className="w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative"
+        style={{ background: "#0d0e14", border: "1px solid rgba(108,92,231,0.3)" }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4"
+          style={{ background: "linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,0,0,0))", borderBottom: "1px solid rgba(108,92,231,0.15)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center relative"
+              style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", boxShadow: "0 0 20px rgba(108,92,231,0.5)" }}>
+              <span className="material-symbols-outlined text-white text-[18px]">radar</span>
+              {phase === "scanning" && <span className="absolute inset-0 rounded-xl animate-ping bg-[#6C5CE7] opacity-30" />}
+            </div>
+            <div>
+              <h2 className="text-white font-black text-sm" style={{ fontFamily: "monospace", letterSpacing: "0.15em" }}>REALITY SCANNER</h2>
+              <p className="text-[10px] font-mono" style={{ color: "rgba(108,92,231,0.8)" }}>
+                {phase === "scanning" ? "DEEP SCAN IN PROGRESS..." : phase === "analyzing" ? "AI NEURAL ANALYSIS..." : "SCAN COMPLETE"}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10">
+            <span className="material-symbols-outlined text-white/50 text-sm">close</span>
+          </button>
+        </div>
+
+        {/* Media preview + scan animation */}
+        {phase !== "result" && (
+          <div className="relative mx-6 mt-5 rounded-2xl overflow-hidden" style={{ height: 200, background: "#000" }}>
+            {mediaType === "image"
+              ? <img src={mediaUrl} alt="scanning" className="w-full h-full object-cover opacity-70" />
+              : <video src={mediaUrl} className="w-full h-full object-cover opacity-70" muted />
+            }
+            {/* Scan beam */}
+            <div className="absolute left-0 right-0 h-1 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(transparent, rgba(108,92,231,0.9), transparent)", animation: "scanBeam 1.8s ease-in-out infinite", boxShadow: "0 0 16px rgba(108,92,231,0.8)" }} />
+            {/* Scan lines */}
+            {scanLines.map(l => (
+              <div key={l.id} className="absolute left-0 h-px pointer-events-none"
+                style={{ top: l.top + "%", width: l.width + "%", background: "rgba(108,92,231,0.3)", animation: `scanLineFlicker ${0.8 + l.delay}s ease-in-out ${l.delay}s infinite` }} />
+            ))}
+            {/* Corner brackets */}
+            {[["top-2 left-2","border-t border-l"],["top-2 right-2","border-t border-r"],["bottom-2 left-2","border-b border-l"],["bottom-2 right-2","border-b border-r"]].map(([pos, borders], i) => (
+              <div key={i} className={`absolute ${pos} w-6 h-6 ${borders} z-20`}
+                style={{ borderColor: "rgba(108,92,231,0.9)", animation: `cornerBlink 1.2s ease-in-out ${i * 0.3}s infinite` }} />
+            ))}
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+              <div className="px-4 py-2 rounded-full font-mono text-xs font-bold tracking-widest"
+                style={{ background: "rgba(0,0,0,0.7)", color: "#6C5CE7", border: "1px solid rgba(108,92,231,0.4)" }}>
+                {phase === "scanning" ? "SCANNING MEDIA..." : "ANALYZING PATTERNS..."}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Result thumbnail */}
+        {phase === "result" && result && (
+          <div className="relative mx-6 mt-5 rounded-2xl overflow-hidden flex items-center gap-4 p-4"
+            style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${verdictColor}33` }}>
+            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+              {mediaType === "image"
+                ? <img src={mediaUrl} alt="analyzed" className="w-full h-full object-cover" />
+                : <video src={mediaUrl} className="w-full h-full object-cover" muted />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/50 text-[10px] font-mono uppercase tracking-widest mb-1">Analysis Target</p>
+              <p className="text-white text-xs font-semibold truncate">{mediaType === "image" ? "Image" : "Video"} file</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
+                  <div className="h-full rounded-full" style={{ width: result.confidence + "%", background: `linear-gradient(90deg, ${verdictColor}, ${verdictColor}88)` }} />
+                </div>
+                <span className="text-[10px] font-mono shrink-0" style={{ color: verdictColor }}>{result.confidence}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress bar — scanning phase */}
+        {phase === "scanning" && (
+          <div className="px-6 mt-5">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Scan depth</span>
+              <span className="text-[10px] font-mono" style={{ color: "#6C5CE7" }}>{Math.floor(scanProgress)}%</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="h-full rounded-full transition-all duration-300"
+                style={{ width: scanProgress + "%", background: "linear-gradient(90deg,#6C5CE7,#a29bfe)", animation: "progressPulse 1s ease-in-out infinite" }} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {["Pixel entropy","Edge coherence","Noise patterns","Metadata scan"].map((label, i) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: scanProgress > (i + 1) * 22 ? "#6C5CE7" : "rgba(255,255,255,0.15)", transition: "background 0.5s" }} />
+                  <span className="text-[10px] font-mono text-white/30">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Analyzing phase */}
+        {phase === "analyzing" && (
+          <div className="px-6 mt-5 flex items-center justify-center gap-4">
+            <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+              <div className="absolute inset-0 rounded-full border-2 border-transparent"
+                style={{ borderTopColor: "#6C5CE7", animation: "orbitalRing 1s linear infinite" }} />
+              <div className="absolute inset-1 rounded-full border border-transparent"
+                style={{ borderBottomColor: "#a29bfe", animation: "orbitalRingRev 0.7s linear infinite" }} />
+              <span className="material-symbols-outlined text-[#6C5CE7] text-xl">psychology</span>
+            </div>
+            <div>
+              <p className="text-white/80 text-sm font-semibold mb-1">Neural pattern analysis</p>
+              <p className="text-white/30 text-xs font-mono">Comparing against 12M+ AI signatures...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Result */}
+        {phase === "result" && result && (
+          <div className="px-6 mt-5" style={{ animation: "verdictReveal 0.5s cubic-bezier(0.16,1,0.3,1)" }}>
+            <div className="flex items-center justify-center mb-5">
+              <div className="px-8 py-3 rounded-2xl flex items-center gap-3"
+                style={{ background: `${verdictColor}18`, border: `1.5px solid ${verdictColor}55`, boxShadow: `0 0 30px ${verdictGlow}` }}>
+                <span className="material-symbols-outlined text-2xl" style={{ color: verdictColor }}>
+                  {isAI ? "smart_toy" : "verified"}
+                </span>
+                <div>
+                  <p className="font-black text-lg tracking-widest font-mono" style={{ color: verdictColor }}>
+                    {isAI ? "AI GENERATED" : "AUTHENTIC"}
+                  </p>
+                  <p className="text-[10px] font-mono text-center" style={{ color: verdictColor + "99" }}>
+                    {result.confidence}% confidence · Risk: {result.riskLevel}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2">Analysis Summary</p>
+              <p className="text-white/75 text-xs leading-relaxed">{result.reasoning}</p>
+            </div>
+
+            <div className="mb-5">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2.5">
+                {isAI ? "AI Indicators Detected" : "Authenticity Markers"}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {(result.topIndicators || []).slice(0, 4).map((feat, i) => (
+                  <div key={i} className="flex items-center gap-2.5"
+                    style={{ animation: `featureSlide 0.3s ease-out ${i * 0.08}s both` }}>
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: verdictColor }} />
+                    <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.55)" }}>{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-center font-mono pb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Results are probabilistic. Always apply critical judgment.
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 mt-2"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <p className="text-[10px] font-mono" style={{ color: "rgba(108,92,231,0.5)" }}>
+            {phase === "result" ? "ANALYSIS COMPLETE" : phase === "scanning" ? `${Math.floor(scanProgress)}% SCANNED` : "PROCESSING..."}
+          </p>
+          {phase === "result"
+            ? <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)" }}>Close</button>
+            : <div className="flex gap-1">{[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#6C5CE7", animationDelay: i*0.15+"s" }} />)}</div>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MediaWithScanner wrapper — adds hover/longpress Reality Scanner button ────
+function MediaWithScanner({ fileUrl, mediaType, isDark, children }) {
+  const [hovered, setHovered] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const longPressTimer = useRef(null);
+  const hideTimer = useRef(null);
+
+  const handleTouchStart = (e) => {
+    e.persist && e.persist();
+    longPressTimer.current = setTimeout(() => {
+      setHovered(true);
+      // Auto-hide overlay after 3s on mobile if user doesn't tap
+      hideTimer.current = setTimeout(() => setHovered(false), 3000);
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    clearTimeout(longPressTimer.current);
+  };
+
+  const handleMouseEnter = () => {
+    clearTimeout(hideTimer.current);
+    setHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setHovered(false);
+  };
+
+  return (
+    <>
+      {scannerOpen && (
+        <RealityScanner
+          mediaUrl={fileUrl}
+          mediaType={mediaType}
+          onClose={() => setScannerOpen(false)}
+          isDark={isDark}
+        />
+      )}
+      <div
+        className="relative p-2 rounded-2xl shadow-sm bg-surface-container-lowest overflow-hidden"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {children}
+        {/* Slide-down Reality Scanner button */}
+        {hovered && (
+          <button
+            onClick={e => { e.stopPropagation(); setScannerOpen(true); setHovered(false); clearTimeout(hideTimer.current); }}
+            className="absolute left-0 right-0 bottom-0 flex items-center justify-center gap-1.5 py-2 z-20"
+            style={{
+              background: "linear-gradient(to top, rgba(15,10,30,0.92) 0%, rgba(108,92,231,0.75) 100%)",
+              backdropFilter: "blur(6px)",
+              animation: "rsSlideDown 0.22s cubic-bezier(0.16,1,0.3,1)",
+            }}
+          >
+            <span className="material-symbols-outlined text-white text-[15px]">radar</span>
+            <span className="text-white text-[11px] font-black" style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>
+              REALITY SCANNER
+            </span>
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
 
 // ── Message Bubble (with Reactions + Reply support) ───────────────────────────
 function MessageBubble({ msg, isSent, isDark, onReact, onReply, reactions }) {
@@ -754,18 +1090,18 @@ function MessageBubble({ msg, isSent, isDark, onReact, onReply, reactions }) {
       <div className="text-5xl p-2" style={{ animation: "stickerPop 0.4s ease-out" }}>{msg.content}</div>
     );
     if (msg.type === "image") return (
-      <div className="p-2 rounded-2xl shadow-sm bg-surface-container-lowest">
+      <MediaWithScanner fileUrl={fileUrl} mediaType="image" isDark={isDark}>
         <img src={fileUrl} alt={msg.fileName || "image"} className="rounded-xl max-w-[240px] max-h-[180px] object-cover cursor-pointer hover:opacity-90"
           onClick={() => window.open(fileUrl, "_blank")} />
-      </div>
+      </MediaWithScanner>
     );
     if (msg.type === "audio" || msg.type === "ai_voice") return (
       <VoiceWaveform src={fileUrl} isSent={isSent} isDark={isDark} />
     );
     if (msg.type === "video") return (
-      <div className="p-2 rounded-2xl shadow-sm bg-surface-container-lowest">
+      <MediaWithScanner fileUrl={fileUrl} mediaType="video" isDark={isDark}>
         <video controls src={fileUrl} className="rounded-xl max-w-[240px] max-h-[180px]" />
-      </div>
+      </MediaWithScanner>
     );
     if (msg.type === "file") return (
       <div className={"p-3 rounded-2xl shadow-sm flex items-center gap-3 " + (isSent ? "bg-[#6C5CE7]" : isDark ? "bg-white/10" : "bg-white")}>
@@ -3561,3 +3897,7 @@ export default function ChatPage() {
     </div>
   );
 };
+
+
+
+

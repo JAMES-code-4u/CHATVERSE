@@ -785,6 +785,7 @@ function MediaWithScanner({ fileUrl, mediaType, isDark, children }) {
 
 // ── Message Bubble (with Reactions + Reply support) ───────────────────────────
 function MessageBubble({ msg, isSent, isDark, onReact, onReply, reactions }) {
+
   const { settings } = useAppSettings();
   const fileUrl = msg.fileUrl ? API + msg.fileUrl : null;
   const accent = settings.accentColor || "#6C5CE7";

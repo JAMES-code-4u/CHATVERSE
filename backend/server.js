@@ -41,9 +41,9 @@ app.use("/api/auth",       authRoutes);
 app.use("/api/users",      userRoutes);
 app.use("/api/messages",   messageRoutes);
 app.use("/api/groups",     groupRoutes);
-app.use("/api/ai",         aiRoutes);
 app.use("/api/recordings", recordingRoutes);
-app.use("/api/ai/reality-scan", realityScanRoutes);
+app.use("/api/ai/reality-scan", realityScanRoutes); // ← must be BEFORE /api/ai
+app.use("/api/ai",         aiRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

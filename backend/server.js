@@ -12,6 +12,7 @@ const messageRoutes    = require("./routes/messages");
 const aiRoutes         = require("./routes/ai");
 const recordingRoutes  = require("./routes/recordings");
 const groupRoutes      = require("./routes/groups");
+const realityScanRoutes = require("./routes/reality-scan");
 
 const { socketHandler } = require("./socket/socketHandler");
 
@@ -42,6 +43,7 @@ app.use("/api/messages",   messageRoutes);
 app.use("/api/groups",     groupRoutes);
 app.use("/api/ai",         aiRoutes);
 app.use("/api/recordings", recordingRoutes);
+app.use("/api/ai/reality-scan", realityScanRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

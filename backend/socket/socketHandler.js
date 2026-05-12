@@ -5,6 +5,8 @@ const Message = require("../models/Message");
 // Map: userId -> socketId (exported so routes can emit to specific users)
 const onlineUsers = new Map();
 const liveSessions = new Map();
+// Map: groupId -> { callType, participants: Set<userId>, initiatorId }
+const activeGroupCalls = new Map();
 let _io = null;
 const getIo = () => _io;
 
@@ -212,6 +214,99 @@ const socketHandler = (io) => {
       }
     });
 
+    // ─── GROUP CALLS (Mesh WebRTC) ───────────────────────────────
+    socket.on("startGroupCall", ({ groupId, callType, groupName }) => {
+      if (!groupId || !callType) return;
+
+      // Create or overwrite active call for this group
+      activeGroupCalls.set(groupId, {
+        callType,
+        groupName: groupName || groupId,
+        initiatorId: userId,
+        participants: new Set([userId]),
+        startedAt: Date.now(),
+      });
+
+      // Notify all online group room members (they're already in the socket room)
+      socket.to(groupId).emit("incomingGroupCall", {
+        groupId,
+        groupName: groupName || groupId,
+        callType,
+        initiatorId: userId,
+        initiatorName: socket.user?.username || "Someone",
+        initiatorAvatar: socket.user?.avatar,
+      });
+    });
+
+    socket.on("joinGroupCall", ({ groupId }) => {
+      const call = activeGroupCalls.get(groupId);
+      if (!call) {
+        socket.emit("groupCallEnded", { groupId });
+        return;
+      }
+      call.participants.add(userId);
+
+      // Notify existing participants so they can initiate peer connections to the newcomer
+      const existingParticipants = Array.from(call.participants).filter(id => id !== userId);
+      existingParticipants.forEach(pid => {
+        const pidSocket = onlineUsers.get(pid);
+        if (pidSocket) {
+          io.to(pidSocket).emit("groupCallPeerJoined", {
+            groupId,
+            newPeerId: userId,
+            newPeerName: socket.user.username,
+            newPeerAvatar: socket.user.avatar,
+          });
+        }
+      });
+
+      // Tell the newcomer who is already in the call
+      socket.emit("groupCallCurrentParticipants", {
+        groupId,
+        callType: call.callType,
+        participants: existingParticipants,
+      });
+    });
+
+    // WebRTC signaling between two group call participants
+    socket.on("groupCallSignal", ({ groupId, targetUserId, signal }) => {
+      const targetSocketId = onlineUsers.get(targetUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("groupCallSignal", {
+          groupId,
+          fromUserId: userId,
+          signal,
+        });
+      }
+    });
+
+    socket.on("leaveGroupCall", ({ groupId }) => {
+      const call = activeGroupCalls.get(groupId);
+      if (!call) return;
+      call.participants.delete(userId);
+
+      // Notify remaining participants
+      call.participants.forEach(pid => {
+        const pidSocket = onlineUsers.get(pid);
+        if (pidSocket) {
+          io.to(pidSocket).emit("groupCallPeerLeft", { groupId, peerId: userId });
+        }
+      });
+
+      // End call if no participants left
+      if (call.participants.size === 0) {
+        activeGroupCalls.delete(groupId);
+        io.to(groupId).emit("groupCallEnded", { groupId });
+      }
+    });
+
+    socket.on("endGroupCall", ({ groupId }) => {
+      const call = activeGroupCalls.get(groupId);
+      if (!call || call.initiatorId !== userId) return;
+      activeGroupCalls.delete(groupId);
+      io.to(groupId).emit("groupCallEnded", { groupId });
+    });
+
     // ─── LIVE BROADCASTING ──────────────────────────────────────
     socket.on("goLive", ({ hostId, hostName, type, title, viewers }) => {
       if (!hostId || hostId !== userId || !Array.isArray(viewers)) return;
@@ -348,6 +443,21 @@ const socketHandler = (io) => {
     // ─── DISCONNECT ─────────────────────────────────────────────
     socket.on("disconnect", async () => {
       onlineUsers.delete(userId);
+
+      // Clean up any group calls this user was participating in
+      activeGroupCalls.forEach((call, groupId) => {
+        if (call.participants.has(userId)) {
+          call.participants.delete(userId);
+          call.participants.forEach(pid => {
+            const pidSocket = onlineUsers.get(pid);
+            if (pidSocket) io.to(pidSocket).emit("groupCallPeerLeft", { groupId, peerId: userId });
+          });
+          if (call.participants.size === 0) {
+            activeGroupCalls.delete(groupId);
+            io.to(groupId).emit("groupCallEnded", { groupId });
+          }
+        }
+      });
 
       liveSessions.forEach((session, hostId) => {
         if (hostId === userId) {

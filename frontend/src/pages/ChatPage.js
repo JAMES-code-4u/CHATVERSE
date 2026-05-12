@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import IncomingCallAlert from "../components/IncomingCallAlert";
+import CallModal from "../components/CallModal";
+import GroupCallModal from "../components/GroupCallModal";
 import SettingsPanel from "../components/SettingsPanel";
 
 const API = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
@@ -373,449 +375,102 @@ function StickerPicker({ onSend, onClose, isDark }) {
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-// ── Feature 7: Virtual Background Picker ─────────────────────────────────────
-function VirtualBgPicker({ current, onChange, onClose, isDark }) {
-  return (
-    <div className={`absolute bottom-14 right-40 rounded-2xl shadow-xl border p-3 z-30 w-56 ${isDark ? "bg-[#1a1b23] border-white/10" : "bg-white border-outline-variant"}`}
-      style={{ animation: "fadeUp 0.15s ease-out" }}>
-      <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? "text-white/40" : "text-on-surface-variant"}`}>Virtual Background</p>
-      <div className="grid grid-cols-3 gap-2">
-        {VBGS.map(bg => (
-          <button key={bg.id} onClick={() => onChange(bg.id)}
-            className={`h-12 rounded-xl border-2 transition-all overflow-hidden text-[10px] font-semibold flex items-end justify-center pb-1
-              ${current === bg.id ? "border-[#6C5CE7] scale-105" : isDark ? "border-white/10 hover:border-white/30" : "border-outline-variant hover:border-[#6C5CE7]/40"}`}
-            style={{ background: bg.color || (isDark ? "#2d2f52" : "#e8e7f2") }}>
-            <span className={current === bg.id ? "text-white" : isDark ? "text-white/60" : "text-on-surface-variant"}>{bg.label}</span>
-          </button>
-        ))}
-      </div>
       <button onClick={onClose} className="mt-2 w-full text-xs text-[#6C5CE7] hover:underline text-center">Done</button>
-    </div>
-  );
-}
-
-// ── Real WebRTC Call Modal (video + voice + screen share + recording) ─────────
-function CallModal({ callData, onEnd, isIncoming = false }) {
-  const { socket } = useSocket();
-  const { token } = useAuth();
-  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
-
-  const [stream, setStream] = useState(null);
-  const [callActive, setCallActive] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [camOff, setCamOff] = useState(false);
-  const [screenSharing, setScreenSharing] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
-  const [recording, setRecording] = useState(false);
-  const [recDuration, setRecDuration] = useState(0);
-  const [recSaving, setRecSaving] = useState(false);
-  const [recSaved, setRecSaved] = useState(false);
-
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const timerRef = useRef(null);
-  const recTimerRef = useRef(null);
-  const peerRef = useRef(null);
-  const screenStreamRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const recChunksRef = useRef([]);
-  const remoteStreamRef = useRef(null); // keep reference for recording mix
-
-  const isVideo = callData?.callType === "video";
-
-  const cleanup = useCallback(() => {
-    clearInterval(timerRef.current);
-    clearInterval(recTimerRef.current);
-    if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
-    peerRef.current?.destroy();
-    stream?.getTracks().forEach(t => t.stop());
-    screenStreamRef.current?.getTracks().forEach(t => t.stop());
-  }, [stream]);
-
-  useEffect(() => {
-    const getMedia = async () => {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
-        setStream(s);
-        if (localVideoRef.current) localVideoRef.current.srcObject = s;
-        if (!isIncoming) {
-          const p = new SimplePeer({ initiator: true, trickle: false, stream: s });
-          p.on("signal", signal => {
-            socket?.emit("callUser", { userToCall: callData.userId, signalData: signal, from: callData.myId, callType: callData.callType });
-          });
-          p.on("stream", remoteStream => {
-            remoteStreamRef.current = remoteStream;
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-          });
-          peerRef.current = p;
-        }
-      } catch (err) {
-        console.error("Media error:", err);
-        alert("Could not access camera/microphone. Please check permissions.");
-        onEnd();
-      }
-    };
-    getMedia();
-    return cleanup;
-  }, []); // eslint-disable-line
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("callAccepted", ({ signal }) => {
-      peerRef.current?.signal(signal);
-      setCallActive(true);
-      timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
-    });
-    socket.on("iceCandidate", ({ candidate }) => { peerRef.current?.signal(candidate); });
-    socket.on("callEnded", () => { stopRecording(true); cleanup(); onEnd(); });
-    socket.on("callRejected", () => { cleanup(); onEnd(); });
-    if (isIncoming && stream) {
-      const p = new SimplePeer({ initiator: false, trickle: false, stream });
-      p.on("signal", signal => { socket.emit("answerCall", { to: callData.from, signal }); });
-      p.on("stream", remoteStream => {
-        remoteStreamRef.current = remoteStream;
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-      });
-      p.signal(callData.signal);
-      peerRef.current = p;
-      setCallActive(true);
-      timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
-    }
-    return () => {
-      socket.off("callAccepted"); socket.off("iceCandidate");
-      socket.off("callEnded"); socket.off("callRejected");
-    };
-  }, [socket, stream]); // eslint-disable-line
-
-  const endCall = () => {
-    socket?.emit("endCall", { to: isIncoming ? callData.from : callData.userId });
-    stopRecording(true);
-    cleanup(); onEnd();
-  };
-
-  const toggleMute = () => {
-    stream?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
-    setMuted(m => !m);
-  };
-
-  const toggleCam = () => {
-    stream?.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
-    setCamOff(c => !c);
-  };
-
-  const toggleScreenShare = async () => {
-    if (!screenSharing) {
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStreamRef.current = screenStream;
-        const screenTrack = screenStream.getVideoTracks()[0];
-        const sender = peerRef.current?._pc?.getSenders().find(s => s.track?.kind === "video");
-        if (sender) sender.replaceTrack(screenTrack);
-        if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
-        screenTrack.onended = stopScreenShare;
-        setScreenSharing(true);
-        socket?.emit("screenShare", { to: isIncoming ? callData.from : callData.userId, sharing: true });
-      } catch (err) { console.error("Screen share error:", err); }
-    } else { stopScreenShare(); }
-  };
-
-  const stopScreenShare = () => {
-    screenStreamRef.current?.getTracks().forEach(t => t.stop());
-    const camTrack = stream?.getVideoTracks()[0];
-    const sender = peerRef.current?._pc?.getSenders().find(s => s.track?.kind === "video");
-    if (sender && camTrack) sender.replaceTrack(camTrack);
-    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-    setScreenSharing(false);
-    socket?.emit("screenShare", { to: isIncoming ? callData.from : callData.userId, sharing: false });
-  };
-
-  // ── Recording ──────────────────────────────────────────────────────────────
-  const startRecording = () => {
-    if (!stream) return;
-    try {
-      // Mix local + remote audio tracks into one MediaStream
-      const audioCtx = new AudioContext();
-      const dest = audioCtx.createMediaStreamDestination();
-      const localSrc = audioCtx.createMediaStreamSource(stream);
-      localSrc.connect(dest);
-      if (remoteStreamRef.current) {
-        const remoteSrc = audioCtx.createMediaStreamSource(remoteStreamRef.current);
-        remoteSrc.connect(dest);
-      }
-
-      const mixedStream = dest.stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus" : "audio/webm";
-      const mr = new MediaRecorder(mixedStream, { mimeType });
-      recChunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) recChunksRef.current.push(e.data); };
-      mr.start(1000); // collect in 1s chunks
-      mediaRecorderRef.current = mr;
-      setRecording(true);
-      setRecDuration(0);
-      recTimerRef.current = setInterval(() => setRecDuration(d => d + 1), 1000);
-    } catch (err) {
-      console.error("Recording start error:", err);
-      alert("Could not start recording: " + err.message);
-    }
-  };
-
-  const stopRecording = async (autoSave = false) => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
-    clearInterval(recTimerRef.current);
-    setRecording(false);
-
-    return new Promise(resolve => {
-      mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(recChunksRef.current, { type: "audio/webm" });
-        recChunksRef.current = [];
-        if (blob.size < 1000) { resolve(); return; } // ignore empty recordings
-
-        setRecSaving(true);
-        try {
-          const durationStr = fmt(recDuration);
-          const fd = new FormData();
-          fd.append("recording", new File([blob], `call-${Date.now()}.webm`, { type: "audio/webm" }));
-          fd.append("callType", callData?.callType || "voice");
-          fd.append("contactName", callData?.name || "Unknown");
-          fd.append("duration", durationStr);
-
-          const res = await fetch(`${API_URL}/api/recordings/save`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: fd,
-          });
-
-          if (res.ok) {
-            setRecSaved(true);
-            setTimeout(() => setRecSaved(false), 3000);
-          }
-        } catch (err) { console.error("Recording upload error:", err); }
-        finally { setRecSaving(false); resolve(); }
-      };
-      mediaRecorderRef.current.stop();
-    });
-  };
-
-  const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
-
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur flex items-center justify-center">
-      <div className="relative w-full max-w-3xl mx-4 rounded-3xl overflow-hidden bg-[#1a1b23] shadow-2xl">
-
-        {/* Remote video / voice UI */}
-        <div className="relative aspect-video bg-[#0d0e14] flex items-center justify-center">
-          {isVideo
-            ? <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            : <div className="flex flex-col items-center gap-4">
-              <div className="relative flex items-center justify-center">
-                {!callActive && (<>
-                  <span className="absolute inline-flex w-24 h-24 rounded-full bg-[#6C5CE7]/20 animate-ping" style={{ animationDuration: "1.2s" }} />
-                  <span className="absolute inline-flex w-32 h-32 rounded-full bg-[#6C5CE7]/12 animate-ping" style={{ animationDuration: "1.6s", animationDelay: "0.2s" }} />
-                  <span className="absolute inline-flex w-40 h-40 rounded-full bg-[#6C5CE7]/8 animate-ping" style={{ animationDuration: "2s", animationDelay: "0.4s" }} />
-                </>)}
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 transition-all
-                    ${callActive ? "bg-[#6C5CE7]/20 border-[#6C5CE7]/60" : "bg-[#6C5CE7]/25 border-[#6C5CE7]/50"}`}>
-                  <span className="material-symbols-outlined text-5xl text-[#6C5CE7]">person</span>
-                </div>
-              </div>
-              <p className="text-white font-semibold text-lg">{callData?.name || "Voice Call"}</p>
-              <p className="text-white/50 text-sm">{callActive ? fmt(callDuration) : "Connecting..."}</p>
-            </div>
-          }
-
-          {/* Duration badge */}
-          {isVideo && callActive && (
-            <div className="absolute top-4 left-4 bg-black/50 text-white text-xs font-mono px-3 py-1 rounded-full backdrop-blur">
-              {fmt(callDuration)}
-            </div>
-          )}
-
-          {/* 🔴 Recording badge */}
-          {recording && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600/90 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              REC {fmt(recDuration)}
-            </div>
-          )}
-
-          {/* ✅ Saved badge */}
-          {recSaved && (
-            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-600/90 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur"
-              style={{ animation: "fadeUp 0.3s ease-out" }}>
-              <span className="material-symbols-outlined text-sm">check_circle</span>
-              Recording saved!
-            </div>
-          )}
-
-          {/* Saving indicator */}
-          {recSaving && (
-            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur">
-              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Saving...
-            </div>
-          )}
-
-          {screenSharing && (
-            <div className="absolute top-4 right-4 bg-[#6C5CE7]/80 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">screen_share</span>
-              Sharing Screen
-            </div>
-          )}
-          {isVideo && (
-            <div className="absolute bottom-4 right-4 w-32 aspect-video rounded-xl overflow-hidden border-2 border-white/20 shadow-xl">
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3 py-5 bg-[#1a1b23]">
-          {/* Mute */}
-          <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${muted ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
-            <span className="material-symbols-outlined text-xl">{muted ? "mic_off" : "mic"}</span>
-          </button>
-
-          {/* Camera (video only) */}
-          {isVideo && (
-            <button onClick={toggleCam} title={camOff ? "Turn on camera" : "Turn off camera"}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${camOff ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
-              <span className="material-symbols-outlined text-xl">{camOff ? "videocam_off" : "videocam"}</span>
-            </button>
-          )}
-
-          {/* Screen share (video only) */}
-          {isVideo && (
-            <button onClick={toggleScreenShare} title="Share screen"
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${screenSharing ? "bg-[#6C5CE7] text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
-              <span className="material-symbols-outlined text-xl">screen_share</span>
-            </button>
-          )}
-
-          {/* 🔴 Record button — available on both voice and video calls */}
-          <button
-            onClick={() => recording ? stopRecording(false) : startRecording()}
-            title={recording ? "Stop recording" : "Start recording"}
-            disabled={recSaving}
-            className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-50
-              ${recording ? "bg-red-600 text-white shadow-lg shadow-red-600/40" : "bg-white/10 text-white hover:bg-white/20"}`}>
-            <span className="material-symbols-outlined text-xl">
-              {recording ? "stop_circle" : "radio_button_checked"}
-            </span>
-            {recording && (
-              <span className="absolute inset-0 rounded-full animate-ping bg-red-500 opacity-30" />
-            )}
-          </button>
-
-          {/* End call */}
-          <button onClick={endCall} title="End call"
-            className="w-14 h-14 rounded-full flex items-center justify-center bg-red-600 text-white shadow-lg shadow-red-500/30 hover:bg-red-700 transition-all hover:scale-105">
-            <span className="material-symbols-outlined text-xl">call_end</span>
-          </button>
-        </div>
-
-        {/* Recording hint */}
-        <div className="px-5 pb-3 text-center">
-          <p className="text-white/20 text-[10px]">
-            {recording
-              ? `Recording in progress · ${fmt(recDuration)} · stops automatically when call ends`
-              : "Press ● to record this call · saved to your Recordings"}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
 // ── Reality Scanner Modal ─────────────────────────────────────────────────────
 function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
-  const [phase, setPhase] = useState("scanning"); // scanning | analyzing | result
+  const token = localStorage.getItem("cv_token");
+  const apiKey = localStorage.getItem("cv_gemini_key");
+
+  // phase: "scanning" | "analyzing" | "result" | "error"
+  const [phase, setPhase] = useState("scanning");
   const [scanProgress, setScanProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const [scanLines, setScanLines] = useState([]);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [scanLines] = useState(() =>
+    Array.from({ length: 18 }, (_, i) => ({
+      id: i,
+      top: (i / 17) * 100,
+      delay: i * 0.06,
+      width: 60 + ((i * 37) % 40), // deterministic widths, no Math.random
+    }))
+  );
 
-  const FEATURES_AI   = ["Uniform texture gradients","Unnatural sharpness at edges","Frequency artifact patterns","GAN fingerprint traces","Metadata inconsistencies","Latent space signatures","Neural blending artifacts","Synthetic lighting vectors"];
-  const FEATURES_REAL = ["Natural noise distribution","Authentic EXIF metadata","Organic edge irregularities","Camera sensor patterns","Real-world lens distortion","Authentic shadow physics","Genuine color temperature","Natural motion blur"];
+  const runScan = useCallback(async () => {
+    setPhase("scanning");
+    setScanProgress(0);
+    setResult(null);
+    setErrorMsg("");
 
-  useEffect(() => {
-    setScanLines(Array.from({ length: 18 }, (_, i) => ({ id: i, top: (i / 17) * 100, delay: i * 0.06, width: 60 + Math.random() * 40 })));
-
+    // Animate scan progress
+    let prog = 0;
     const scanTimer = setInterval(() => {
-      setScanProgress(p => {
-        if (p >= 100) { clearInterval(scanTimer); return 100; }
-        return p + (p < 60 ? 1.2 : p < 85 ? 0.7 : 0.4);
-      });
+      prog += prog < 60 ? 1.2 : prog < 85 ? 0.7 : 0.4;
+      setScanProgress(Math.min(prog, 100));
+      if (prog >= 100) clearInterval(scanTimer);
     }, 60);
 
+    // Switch to "analyzing" phase at 4.8s
     const analyzeTimer = setTimeout(() => setPhase("analyzing"), 4800);
 
+    // Call backend after 7.5s
     const resultTimer = setTimeout(async () => {
+      clearInterval(scanTimer);
+      setScanProgress(100);
+
+      if (!apiKey) {
+        setErrorMsg("No Gemini API key found. Please set your API key in the ChatVerse AI panel first.");
+        setPhase("error");
+        return;
+      }
+
       try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        const res = await fetch(`${API}/api/ai/reality-scan`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            messages: [{
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `You are an expert AI-generated media detection system. Analyze this ${mediaType} and determine if it is AI-generated or real/authentic.\n\nRespond ONLY with a JSON object (no markdown, no backticks, no extra text):\n{\n  "verdict": "AI_GENERATED" or "REAL",\n  "confidence": number between 0 and 100,\n  "reasoning": "2-3 sentence explanation of key indicators",\n  "topIndicators": ["indicator 1", "indicator 2", "indicator 3"],\n  "riskLevel": "LOW" or "MEDIUM" or "HIGH"\n}`
-                },
-                mediaType === "image"
-                  ? { type: "image", source: { type: "url", url: mediaUrl } }
-                  : { type: "text", text: `[Video URL provided: ${mediaUrl} — analyze based on URL patterns and any available metadata. Make a determination based on typical AI video signatures.]` }
-              ]
-            }]
-          })
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ mediaUrl, mediaType, apiKey }),
         });
-        const data = await response.json();
-        const raw = data?.content?.[0]?.text || "";
-        let parsed;
-        try {
-          parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-        } catch {
-          const isAIFallback = Math.random() > 0.5;
-          parsed = {
-            verdict: isAIFallback ? "AI_GENERATED" : "REAL",
-            confidence: 60 + Math.floor(Math.random() * 30),
-            reasoning: "Analysis complete. The media shows mixed signals with some indicators pointing to synthetic generation.",
-            topIndicators: (isAIFallback ? FEATURES_AI : FEATURES_REAL).slice(0, 3),
-            riskLevel: "MEDIUM"
-          };
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 401 && data.error?.toLowerCase().includes("api key")) {
+            setErrorMsg("Invalid Gemini API key. Please update it in the ChatVerse AI panel.");
+          } else {
+            setErrorMsg(data.error || "Analysis failed. Please try again.");
+          }
+          setPhase("error");
+          return;
         }
-        setResult(parsed);
+
+        setResult(data.result);
         setPhase("result");
-      } catch {
-        const isAIFallback = Math.random() > 0.55;
-        setResult({
-          verdict: isAIFallback ? "AI_GENERATED" : "REAL",
-          confidence: 72 + Math.floor(Math.random() * 20),
-          reasoning: isAIFallback
-            ? "Several AI generation artifacts detected including unnatural texture uniformity and synthetic edge signatures."
-            : "Media exhibits authentic characteristics including natural noise patterns and genuine camera sensor artifacts.",
-          topIndicators: isAIFallback ? FEATURES_AI.slice(0, 3) : FEATURES_REAL.slice(0, 3),
-          riskLevel: isAIFallback ? "HIGH" : "LOW"
-        });
-        setPhase("result");
+      } catch (err) {
+        setErrorMsg("Network error — could not reach the server. Please check your connection.");
+        setPhase("error");
       }
     }, 7500);
 
-    return () => { clearInterval(scanTimer); clearTimeout(analyzeTimer); clearTimeout(resultTimer); };
+    return () => {
+      clearInterval(scanTimer);
+      clearTimeout(analyzeTimer);
+      clearTimeout(resultTimer);
+    };
+  }, [apiKey, mediaType, mediaUrl, token]);
+
+  useEffect(() => {
+    const cleanup = runScan();
+    return () => { cleanup?.then?.(fn => fn?.()); };
   }, []); // eslint-disable-line
 
   const isAI = result?.verdict === "AI_GENERATED";
   const verdictColor = isAI ? "#ef4444" : "#22c55e";
-  const verdictGlow  = isAI ? "rgba(239,68,68,0.4)" : "rgba(34,197,94,0.4)";
+  const verdictGlow = isAI ? "rgba(239,68,68,0.4)" : "rgba(34,197,94,0.4)";
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
@@ -837,7 +492,10 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
             <div>
               <h2 className="text-white font-black text-sm" style={{ fontFamily: "monospace", letterSpacing: "0.15em" }}>REALITY SCANNER</h2>
               <p className="text-[10px] font-mono" style={{ color: "rgba(108,92,231,0.8)" }}>
-                {phase === "scanning" ? "DEEP SCAN IN PROGRESS..." : phase === "analyzing" ? "AI NEURAL ANALYSIS..." : "SCAN COMPLETE"}
+                {phase === "scanning" ? "DEEP SCAN IN PROGRESS..."
+                  : phase === "analyzing" ? "AI NEURAL ANALYSIS..."
+                  : phase === "error" ? "SCAN FAILED"
+                  : "SCAN COMPLETE · GEMINI VISION"}
               </p>
             </div>
           </div>
@@ -847,7 +505,7 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
         </div>
 
         {/* Media preview + scan animation */}
-        {phase !== "result" && (
+        {phase !== "result" && phase !== "error" && (
           <div className="relative mx-6 mt-5 rounded-2xl overflow-hidden" style={{ height: 200, background: "#000" }}>
             {mediaType === "image"
               ? <img src={mediaUrl} alt="scanning" className="w-full h-full object-cover opacity-70" />
@@ -862,7 +520,7 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
                 style={{ top: l.top + "%", width: l.width + "%", background: "rgba(108,92,231,0.3)", animation: `scanLineFlicker ${0.8 + l.delay}s ease-in-out ${l.delay}s infinite` }} />
             ))}
             {/* Corner brackets */}
-            {[["top-2 left-2","border-t border-l"],["top-2 right-2","border-t border-r"],["bottom-2 left-2","border-b border-l"],["bottom-2 right-2","border-b border-r"]].map(([pos, borders], i) => (
+            {[["top-2 left-2", "border-t border-l"], ["top-2 right-2", "border-t border-r"], ["bottom-2 left-2", "border-b border-l"], ["bottom-2 right-2", "border-b border-r"]].map(([pos, borders], i) => (
               <div key={i} className={`absolute ${pos} w-6 h-6 ${borders} z-20`}
                 style={{ borderColor: "rgba(108,92,231,0.9)", animation: `cornerBlink 1.2s ease-in-out ${i * 0.3}s infinite` }} />
             ))}
@@ -910,7 +568,7 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
                 style={{ width: scanProgress + "%", background: "linear-gradient(90deg,#6C5CE7,#a29bfe)", animation: "progressPulse 1s ease-in-out infinite" }} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              {["Pixel entropy","Edge coherence","Noise patterns","Metadata scan"].map((label, i) => (
+              {["Pixel entropy", "Edge coherence", "Noise patterns", "Metadata scan"].map((label, i) => (
                 <div key={label} className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ background: scanProgress > (i + 1) * 22 ? "#6C5CE7" : "rgba(255,255,255,0.15)", transition: "background 0.5s" }} />
@@ -932,9 +590,28 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
               <span className="material-symbols-outlined text-[#6C5CE7] text-xl">psychology</span>
             </div>
             <div>
-              <p className="text-white/80 text-sm font-semibold mb-1">Neural pattern analysis</p>
-              <p className="text-white/30 text-xs font-mono">Comparing against 12M+ AI signatures...</p>
+              <p className="text-white/80 text-sm font-semibold mb-1">Gemini Vision analysis</p>
+              <p className="text-white/30 text-xs font-mono">Running pixel-level forensic analysis...</p>
             </div>
+          </div>
+        )}
+
+        {/* Error phase */}
+        {phase === "error" && (
+          <div className="px-6 mt-5 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+              <span className="material-symbols-outlined text-red-400 text-2xl">error</span>
+            </div>
+            <div>
+              <p className="text-red-400 font-bold text-sm mb-1">Scan Failed</p>
+              <p className="text-white/40 text-xs leading-relaxed max-w-xs">{errorMsg}</p>
+            </div>
+            {!apiKey && (
+              <p className="text-[10px] font-mono text-white/20">
+                Set your Gemini key in the AI Bot panel (🤖) to enable Reality Scanner
+              </p>
+            )}
           </div>
         )}
 
@@ -968,7 +645,7 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
                 {isAI ? "AI Indicators Detected" : "Authenticity Markers"}
               </p>
               <div className="flex flex-col gap-1.5">
-                {(result.topIndicators || []).slice(0, 4).map((feat, i) => (
+                {(result.topIndicators || []).slice(0, 5).map((feat, i) => (
                   <div key={i} className="flex items-center gap-2.5"
                     style={{ animation: `featureSlide 0.3s ease-out ${i * 0.08}s both` }}>
                     <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: verdictColor }} />
@@ -978,8 +655,30 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
               </div>
             </div>
 
+            {/* Detailed scores */}
+            {result.detailedScores && (
+              <div className="mb-4 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-3">Forensic Score Breakdown</p>
+                <div className="flex flex-col gap-2">
+                  {Object.entries(result.detailedScores).map(([key, val]) => {
+                    const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase());
+                    const color = isAI ? (val > 60 ? "#ef4444" : "#f97316") : (val > 60 ? "#22c55e" : "#86efac");
+                    return (
+                      <div key={key} className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-white/30 w-36 shrink-0">{label}</span>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: val + "%", background: color }} />
+                        </div>
+                        <span className="text-[10px] font-mono shrink-0" style={{ color }}>{val}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <p className="text-[10px] text-center font-mono pb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
-              Results are probabilistic. Always apply critical judgment.
+              Powered by Google Gemini Vision · Results are probabilistic
             </p>
           </div>
         )}
@@ -988,13 +687,26 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
         <div className="flex items-center justify-between px-6 py-4 mt-2"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-[10px] font-mono" style={{ color: "rgba(108,92,231,0.5)" }}>
-            {phase === "result" ? "ANALYSIS COMPLETE" : phase === "scanning" ? `${Math.floor(scanProgress)}% SCANNED` : "PROCESSING..."}
+            {phase === "result" ? "ANALYSIS COMPLETE"
+              : phase === "error" ? "SCAN FAILED"
+              : phase === "scanning" ? `${Math.floor(scanProgress)}% SCANNED`
+              : "PROCESSING..."}
           </p>
-          {phase === "result"
-            ? <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:scale-105"
+          <div className="flex gap-2">
+            {(phase === "result" || phase === "error") && (
+              <button onClick={runScan}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 transition-all hover:text-white hover:bg-white/8">
+                Scan Again
+              </button>
+            )}
+            {(phase === "result" || phase === "error") && (
+              <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:scale-105"
                 style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)" }}>Close</button>
-            : <div className="flex gap-1">{[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#6C5CE7", animationDelay: i*0.15+"s" }} />)}</div>
-          }
+            )}
+            {phase !== "result" && phase !== "error" && (
+              <div className="flex gap-1">{[0, 1, 2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#6C5CE7", animationDelay: i * 0.15 + "s" }} />)}</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -3122,6 +2834,10 @@ export default function ChatPage() {
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
 
+  // Group call state
+  const [groupCallData, setGroupCallData] = useState(null);   // { groupId, groupName, callType, isIncoming, incomingData }
+  const [incomingGroupCall, setIncomingGroupCall] = useState(null);
+
   // New feature state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -3269,6 +2985,13 @@ export default function ChatPage() {
       setLiveSession(prev => prev?.hostId === hostId ? { ...prev, ended: true, message: message || "Live ended. Thanks for watching! 👋", autoJoin: false } : prev);
     });
 
+    // Group call notifications — someone in a group started/joined a call
+    socket.on("incomingGroupCall", (data) => {
+      // data: { groupId, groupName, callType, initiatorName }
+      // Only show if we're not already in a group call for this group
+      setIncomingGroupCall(data);
+    });
+
     return () => {
       socket.off("receiveMessage");
       socket.off("messageSent");
@@ -3277,6 +3000,7 @@ export default function ChatPage() {
       socket.off("groupCreated");
       socket.off("liveNotification");
       socket.off("liveEnded");
+      socket.off("incomingGroupCall");
     };
   }, [socket, activeContact]);
 
@@ -3491,11 +3215,62 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Real WebRTC Call Modal */}
+      {/* Real WebRTC Call Modal (1-to-1) */}
       {callData && <CallModal callData={callData} onEnd={() => setCallData(null)} isIncoming={false} />}
       {incomingCallAnswered && <CallModal callData={incomingCallAnswered} onEnd={() => setIncomingCallAnswered(null)} isIncoming={true} />}
       {incomingCall && !incomingCallAnswered && <IncomingCallAlert callData={incomingCall} onAccept={handleAcceptCall} onReject={handleRejectCall} />}
       {showGroupModal && <CreateGroupModal contacts={contacts.filter(c => c._id !== user?._id)} onClose={() => setShowGroupModal(false)} onCreate={createGroup} isDark={isDark} />}
+
+      {/* Group Call Modal */}
+      {groupCallData && (
+        <GroupCallModal
+          groupId={groupCallData.groupId}
+          groupName={groupCallData.groupName}
+          callType={groupCallData.callType}
+          onEnd={() => setGroupCallData(null)}
+          contacts={contacts}
+          currentUser={user}
+          isIncoming={groupCallData.isIncoming || false}
+          incomingData={groupCallData.incomingData || null}
+        />
+      )}
+
+      {/* Incoming Group Call Toast (when GroupCallModal not yet open) */}
+      {incomingGroupCall && !groupCallData && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[99998] w-[340px] rounded-2xl shadow-2xl overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#0d0e14,#1a1b23)", border: "1px solid rgba(108,92,231,0.3)", animation: "fadeUp 0.3s ease-out" }}>
+          <div className="flex items-center gap-4 p-4">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 relative"
+              style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", boxShadow: "0 0 20px rgba(108,92,231,0.5)" }}>
+              <span className="material-symbols-outlined text-white text-2xl">
+                {incomingGroupCall.callType === "video" ? "videocam" : "call"}
+              </span>
+              <span className="absolute inset-0 rounded-2xl animate-ping bg-[#6C5CE7] opacity-20" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/50 text-[10px] font-mono uppercase tracking-widest">Incoming Group {incomingGroupCall.callType === "video" ? "Video" : "Voice"} Call</p>
+              <p className="text-white font-bold text-sm truncate">{incomingGroupCall.groupName}</p>
+              <p className="text-white/40 text-xs">{incomingGroupCall.initiatorName} started a call</p>
+            </div>
+          </div>
+          <div className="flex border-t border-white/5">
+            <button
+              onClick={() => setIncomingGroupCall(null)}
+              className="flex-1 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors">
+              Decline
+            </button>
+            <div className="w-px bg-white/5" />
+            <button
+              onClick={() => {
+                setGroupCallData({ ...incomingGroupCall, isIncoming: true, incomingData: incomingGroupCall });
+                setIncomingGroupCall(null);
+              }}
+              className="flex-1 py-3 text-sm font-semibold text-green-400 hover:bg-green-500/10 transition-colors">
+              Join Call
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className={`fixed z-50 flex items-center transition-colors duration-300
@@ -3675,11 +3450,11 @@ export default function ChatPage() {
               {/* ── Header action buttons ── */}
               <div className="flex items-center gap-1">
                 {!activeContact.isAI && !activeContact.isGroup && (
-                  // Call button group — subtle grouped look
+                  // 1-to-1 call buttons
                   <div className={`flex items-center rounded-xl overflow-hidden ${isDark ? "bg-white/5" : "bg-slate-100"} mr-1`}>
                     <button
                       onClick={() => setCallData({ userId: activeContact._id, myId: user._id, callType: "voice", name: activeContact.username })}
-                      className={`p-2.5 transition-all hover:bg-[#6C5CE7]/15 group`}
+                      className="p-2.5 transition-all hover:bg-[#6C5CE7]/15 group"
                       title="Voice call"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">call</span>
@@ -3687,8 +3462,29 @@ export default function ChatPage() {
                     <div className={`w-px h-5 ${isDark ? "bg-white/10" : "bg-slate-200"}`} />
                     <button
                       onClick={() => setCallData({ userId: activeContact._id, myId: user._id, callType: "video", name: activeContact.username })}
-                      className={`p-2.5 transition-all hover:bg-[#6C5CE7]/15 group`}
+                      className="p-2.5 transition-all hover:bg-[#6C5CE7]/15 group"
                       title="Video call"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">videocam</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Group call buttons — only shown for group chats */}
+                {!activeContact.isAI && activeContact.isGroup && (
+                  <div className={`flex items-center rounded-xl overflow-hidden ${isDark ? "bg-white/5" : "bg-slate-100"} mr-1`}>
+                    <button
+                      onClick={() => setGroupCallData({ groupId: activeContact._id, groupName: activeContact.username, callType: "voice", isIncoming: false })}
+                      className="p-2.5 transition-all hover:bg-[#6C5CE7]/15 group"
+                      title="Group Voice Call"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">call</span>
+                    </button>
+                    <div className={`w-px h-5 ${isDark ? "bg-white/10" : "bg-slate-200"}`} />
+                    <button
+                      onClick={() => setGroupCallData({ groupId: activeContact._id, groupName: activeContact.username, callType: "video", isIncoming: false })}
+                      className="p-2.5 transition-all hover:bg-[#6C5CE7]/15 group"
+                      title="Group Video Call"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#6C5CE7] group-hover:scale-110 transition-transform block">videocam</span>
                     </button>

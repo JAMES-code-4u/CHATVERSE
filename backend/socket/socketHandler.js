@@ -494,4 +494,4 @@ const socketHandler = (io) => {
   });
 };
 
-module.exports = { socketHandler, onlineUsers, liveSessions, broadcastOnlineUsers };
+module.exports = { socketHandler, onlineUsers, liveSessions, broadcastOnlineUsers, getIo };

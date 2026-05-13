@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import SimplePeer from "simple-peer";
 import { useSocket } from "../context/SocketContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function CallModal({ callData, onEnd, isIncoming = false, localStream: existingStream }) {
   const { socket } = useSocket();
+  const { token } = useAuth();
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
   const [stream, setStream] = useState(null);
   const [peer, setPeer] = useState(null);
   const [callActive, setCallActive] = useState(false);
@@ -193,11 +196,43 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
       if (remoteStream && remoteStream.getAudioTracks().length > 0) {
         actx.createMediaStreamSource(new MediaStream([remoteStream.getAudioTracks()[0]])).connect(dest);
       }
-      const recorder = new MediaRecorder(dest.stream);
+      
+      const tracks = [dest.stream.getAudioTracks()[0]];
+      const videoTrack = remoteStream?.getVideoTracks()[0] || screenStreamRef.current?.getVideoTracks()[0] || stream?.getVideoTracks()[0];
+      if (videoTrack && isVideo) {
+        tracks.push(videoTrack);
+      }
+      const combinedStream = new MediaStream(tracks.filter(Boolean));
+      
+      let recorder;
+      try {
+        recorder = new MediaRecorder(combinedStream, { mimeType: isVideo ? "video/webm; codecs=vp8,opus" : "audio/webm" });
+      } catch (e) {
+        try {
+          recorder = new MediaRecorder(combinedStream, { mimeType: isVideo ? "video/webm" : "audio/webm" });
+        } catch (e2) {
+          recorder = new MediaRecorder(combinedStream);
+        }
+      }
+
       const chunks = [];
       recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
+        const blob = new Blob(chunks, { type: isVideo ? "video/webm" : "audio/webm" });
+        
+        // Upload recording to backend so it shows up in the sidebar recordings list
+        const formData = new FormData();
+        formData.append("recording", blob, `recording_${Date.now()}.webm`);
+        formData.append("callType", isVideo ? "video" : "voice");
+        formData.append("contactName", callData?.name || callData?.username || "Contact");
+        formData.append("duration", formatDuration(callDuration));
+
+        fetch(`${API_URL}/api/recordings/save`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }).catch(err => console.error("Upload recording error:", err));
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.style.display = "none";
@@ -213,7 +248,7 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
       setIsRecording(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to start voice recording.");
+      alert("Failed to start recording.");
     }
   };
 

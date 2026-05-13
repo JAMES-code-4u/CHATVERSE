@@ -42,9 +42,8 @@ router.post("/", protect, async (req, res) => {
       memberIds.forEach(memberId => {
         const socketId = onlineUsers.get(memberId);
         if (socketId) {
-          // Make that user's socket join the group room
-          const memberSocket = io.sockets.sockets.get(socketId);
-          if (memberSocket) memberSocket.join(group._id.toString());
+          // Make that user's socket join the group room safely in Socket.IO v4
+          io.in(socketId).socketsJoin(group._id.toString());
           // Send the new group data to their frontend
           io.to(socketId).emit("groupCreated", groupContact);
         }
@@ -62,6 +61,26 @@ router.get("/", protect, async (req, res) => {
   try {
     const groups = await Group.find({ members: req.user._id }).populate("members", "username avatar status");
     res.json({ groups: groups.map(formatGroup) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/groups/:groupId - Delete a group (admin only)
+router.delete("/:groupId", protect, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+
+    if (group.admin.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Only the admin can delete the group" });
+    }
+
+    await Group.findByIdAndDelete(req.params.groupId);
+    const Message = require("../models/Message");
+    await Message.deleteMany({ receiverGroup: req.params.groupId });
+
+    res.json({ message: "Group deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

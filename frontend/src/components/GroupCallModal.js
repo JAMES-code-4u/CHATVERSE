@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import SimplePeer from "simple-peer";
 import { useSocket } from "../context/SocketContext";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
@@ -50,6 +51,7 @@ function ParticipantTile({ peerId, peerName, peerAvatar, stream, isSelf, muted: 
 // ── Main GroupCallModal ───────────────────────────────────────────────────────
 export default function GroupCallModal({ groupId, groupName, callType, onEnd, contacts, currentUser, isIncoming = false, incomingData = null }) {
   const { socket } = useSocket();
+  const { token } = useAuth();
 
   const [localStream, setLocalStream] = useState(null);
   const [peers, setPeers] = useState({}); // peerId -> { peer, stream, name, avatar }
@@ -291,20 +293,64 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
       return;
     }
     try {
-      const mr = new MediaRecorder(localStreamRef.current, { mimeType: "video/webm" });
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = actx.createMediaStreamDestination();
+      if (localStreamRef.current?.getAudioTracks().length > 0) {
+        actx.createMediaStreamSource(new MediaStream([localStreamRef.current.getAudioTracks()[0]])).connect(dest);
+      }
+      Object.values(peersRef.current).forEach(p => {
+        if (p?.stream?.getAudioTracks()?.length > 0) {
+          actx.createMediaStreamSource(new MediaStream([p.stream.getAudioTracks()[0]])).connect(dest);
+        }
+      });
+
+      const tracks = [dest.stream.getAudioTracks()[0]];
+      const videoTrack = screenStreamRef.current?.getVideoTracks()[0] || localStreamRef.current?.getVideoTracks()[0];
+      if (videoTrack && isVideo) {
+        tracks.push(videoTrack);
+      }
+      const combinedStream = new MediaStream(tracks.filter(Boolean));
+
+      let mr;
+      try {
+        mr = new MediaRecorder(combinedStream, { mimeType: isVideo ? "video/webm; codecs=vp8,opus" : "audio/webm" });
+      } catch (e) {
+        try {
+          mr = new MediaRecorder(combinedStream, { mimeType: isVideo ? "video/webm" : "audio/webm" });
+        } catch (e2) {
+          mr = new MediaRecorder(combinedStream);
+        }
+      }
+
       chunksRef.current = [];
-      mr.ondataavailable = e => chunksRef.current.push(e.data);
+      mr.ondataavailable = e => e.data.size > 0 && chunksRef.current.push(e.data);
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const blob = new Blob(chunksRef.current, { type: isVideo ? "video/webm" : "audio/webm" });
+        
+        const formData = new FormData();
+        formData.append("recording", blob, `group_recording_${Date.now()}.webm`);
+        formData.append("callType", isVideo ? "video" : "voice");
+        formData.append("contactName", groupName || "Group Call");
+        formData.append("duration", fmt(callDuration));
+
+        fetch(`${API}/api/recordings/save`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }).catch(err => console.error("Upload group recording error:", err));
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = `group-call-${Date.now()}.webm`; a.click();
+        a.href = url; a.download = `group-call-${groupName || "recording"}-${Date.now()}.webm`; a.click();
         URL.revokeObjectURL(url);
       };
       mr.start();
       mediaRecorderRef.current = mr;
       setIsRecording(true);
-    } catch { alert("Recording not supported in this browser."); }
+    } catch (err) {
+      console.error(err);
+      alert("Recording not supported or failed in this browser.");
+    }
   };
 
   const endCall = () => {

@@ -476,12 +476,12 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(16px)" }}
       onClick={onClose}>
-      <div className="w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative"
+      <div className="w-full max-w-lg max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl relative flex flex-col"
         style={{ background: "#0d0e14", border: "1px solid rgba(108,92,231,0.3)" }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4"
+        <div className="flex items-center justify-between px-6 py-4 shrink-0"
           style={{ background: "linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,0,0,0))", borderBottom: "1px solid rgba(108,92,231,0.15)" }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center relative"
@@ -504,187 +504,190 @@ function RealityScanner({ mediaUrl, mediaType, onClose, isDark }) {
           </button>
         </div>
 
-        {/* Media preview + scan animation */}
-        {phase !== "result" && phase !== "error" && (
-          <div className="relative mx-6 mt-5 rounded-2xl overflow-hidden" style={{ height: 200, background: "#000" }}>
-            {mediaType === "image"
-              ? <img src={mediaUrl} alt="scanning" className="w-full h-full object-cover opacity-70" />
-              : <video src={mediaUrl} className="w-full h-full object-cover opacity-70" muted />
-            }
-            {/* Scan beam */}
-            <div className="absolute left-0 right-0 h-1 z-10 pointer-events-none"
-              style={{ background: "linear-gradient(transparent, rgba(108,92,231,0.9), transparent)", animation: "scanBeam 1.8s ease-in-out infinite", boxShadow: "0 0 16px rgba(108,92,231,0.8)" }} />
-            {/* Scan lines */}
-            {scanLines.map(l => (
-              <div key={l.id} className="absolute left-0 h-px pointer-events-none"
-                style={{ top: l.top + "%", width: l.width + "%", background: "rgba(108,92,231,0.3)", animation: `scanLineFlicker ${0.8 + l.delay}s ease-in-out ${l.delay}s infinite` }} />
-            ))}
-            {/* Corner brackets */}
-            {[["top-2 left-2", "border-t border-l"], ["top-2 right-2", "border-t border-r"], ["bottom-2 left-2", "border-b border-l"], ["bottom-2 right-2", "border-b border-r"]].map(([pos, borders], i) => (
-              <div key={i} className={`absolute ${pos} w-6 h-6 ${borders} z-20`}
-                style={{ borderColor: "rgba(108,92,231,0.9)", animation: `cornerBlink 1.2s ease-in-out ${i * 0.3}s infinite` }} />
-            ))}
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="px-4 py-2 rounded-full font-mono text-xs font-bold tracking-widest"
-                style={{ background: "rgba(0,0,0,0.7)", color: "#6C5CE7", border: "1px solid rgba(108,92,231,0.4)" }}>
-                {phase === "scanning" ? "SCANNING MEDIA..." : "ANALYZING PATTERNS..."}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Result thumbnail */}
-        {phase === "result" && result && (
-          <div className="relative mx-6 mt-5 rounded-2xl overflow-hidden flex items-center gap-4 p-4"
-            style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${verdictColor}33` }}>
-            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+        {/* Scrollable Inner Body */}
+        <div className="overflow-y-auto custom-scrollbar flex-1 py-2">
+          {/* Media preview + scan animation */}
+          {phase !== "result" && phase !== "error" && (
+            <div className="relative mx-6 mt-3 rounded-2xl overflow-hidden" style={{ height: 200, background: "#000" }}>
               {mediaType === "image"
-                ? <img src={mediaUrl} alt="analyzed" className="w-full h-full object-cover" />
-                : <video src={mediaUrl} className="w-full h-full object-cover" muted />
+                ? <img src={mediaUrl} alt="scanning" className="w-full h-full object-cover opacity-70" />
+                : <video src={mediaUrl} className="w-full h-full object-cover opacity-70" muted />
               }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white/50 text-[10px] font-mono uppercase tracking-widest mb-1">Analysis Target</p>
-              <p className="text-white text-xs font-semibold truncate">{mediaType === "image" ? "Image" : "Video"} file</p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
-                  <div className="h-full rounded-full" style={{ width: result.confidence + "%", background: `linear-gradient(90deg, ${verdictColor}, ${verdictColor}88)` }} />
-                </div>
-                <span className="text-[10px] font-mono shrink-0" style={{ color: verdictColor }}>{result.confidence}%</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Progress bar — scanning phase */}
-        {phase === "scanning" && (
-          <div className="px-6 mt-5">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Scan depth</span>
-              <span className="text-[10px] font-mono" style={{ color: "#6C5CE7" }}>{Math.floor(scanProgress)}%</span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-              <div className="h-full rounded-full transition-all duration-300"
-                style={{ width: scanProgress + "%", background: "linear-gradient(90deg,#6C5CE7,#a29bfe)", animation: "progressPulse 1s ease-in-out infinite" }} />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {["Pixel entropy", "Edge coherence", "Noise patterns", "Metadata scan"].map((label, i) => (
-                <div key={label} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: scanProgress > (i + 1) * 22 ? "#6C5CE7" : "rgba(255,255,255,0.15)", transition: "background 0.5s" }} />
-                  <span className="text-[10px] font-mono text-white/30">{label}</span>
-                </div>
+              {/* Scan beam */}
+              <div className="absolute left-0 right-0 h-1 z-10 pointer-events-none"
+                style={{ background: "linear-gradient(transparent, rgba(108,92,231,0.9), transparent)", animation: "scanBeam 1.8s ease-in-out infinite", boxShadow: "0 0 16px rgba(108,92,231,0.8)" }} />
+              {/* Scan lines */}
+              {scanLines.map(l => (
+                <div key={l.id} className="absolute left-0 h-px pointer-events-none"
+                  style={{ top: l.top + "%", width: l.width + "%", background: "rgba(108,92,231,0.3)", animation: `scanLineFlicker ${0.8 + l.delay}s ease-in-out ${l.delay}s infinite` }} />
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Analyzing phase */}
-        {phase === "analyzing" && (
-          <div className="px-6 mt-5 flex items-center justify-center gap-4">
-            <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
-              <div className="absolute inset-0 rounded-full border-2 border-transparent"
-                style={{ borderTopColor: "#6C5CE7", animation: "orbitalRing 1s linear infinite" }} />
-              <div className="absolute inset-1 rounded-full border border-transparent"
-                style={{ borderBottomColor: "#a29bfe", animation: "orbitalRingRev 0.7s linear infinite" }} />
-              <span className="material-symbols-outlined text-[#6C5CE7] text-xl">psychology</span>
-            </div>
-            <div>
-              <p className="text-white/80 text-sm font-semibold mb-1">Gemini Vision analysis</p>
-              <p className="text-white/30 text-xs font-mono">Running pixel-level forensic analysis...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Error phase */}
-        {phase === "error" && (
-          <div className="px-6 mt-5 flex flex-col items-center gap-4 text-center">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
-              <span className="material-symbols-outlined text-red-400 text-2xl">error</span>
-            </div>
-            <div>
-              <p className="text-red-400 font-bold text-sm mb-1">Scan Failed</p>
-              <p className="text-white/40 text-xs leading-relaxed max-w-xs">{errorMsg}</p>
-            </div>
-            {!apiKey && (
-              <p className="text-[10px] font-mono text-white/20">
-                Set your Gemini key in the AI Bot panel (🤖) to enable Reality Scanner
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Result */}
-        {phase === "result" && result && (
-          <div className="px-6 mt-5" style={{ animation: "verdictReveal 0.5s cubic-bezier(0.16,1,0.3,1)" }}>
-            <div className="flex items-center justify-center mb-5">
-              <div className="px-8 py-3 rounded-2xl flex items-center gap-3"
-                style={{ background: `${verdictColor}18`, border: `1.5px solid ${verdictColor}55`, boxShadow: `0 0 30px ${verdictGlow}` }}>
-                <span className="material-symbols-outlined text-2xl" style={{ color: verdictColor }}>
-                  {isAI ? "smart_toy" : "verified"}
-                </span>
-                <div>
-                  <p className="font-black text-lg tracking-widest font-mono" style={{ color: verdictColor }}>
-                    {isAI ? "AI GENERATED" : "AUTHENTIC"}
-                  </p>
-                  <p className="text-[10px] font-mono text-center" style={{ color: verdictColor + "99" }}>
-                    {result.confidence}% confidence · Risk: {result.riskLevel}
-                  </p>
+              {/* Corner brackets */}
+              {[["top-2 left-2", "border-t border-l"], ["top-2 right-2", "border-t border-r"], ["bottom-2 left-2", "border-b border-l"], ["bottom-2 right-2", "border-b border-r"]].map(([pos, borders], i) => (
+                <div key={i} className={`absolute ${pos} w-6 h-6 ${borders} z-20`}
+                  style={{ borderColor: "rgba(108,92,231,0.9)", animation: `cornerBlink 1.2s ease-in-out ${i * 0.3}s infinite` }} />
+              ))}
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div className="px-4 py-2 rounded-full font-mono text-xs font-bold tracking-widest"
+                  style={{ background: "rgba(0,0,0,0.7)", color: "#6C5CE7", border: "1px solid rgba(108,92,231,0.4)" }}>
+                  {phase === "scanning" ? "SCANNING MEDIA..." : "ANALYZING PATTERNS..."}
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2">Analysis Summary</p>
-              <p className="text-white/75 text-xs leading-relaxed">{result.reasoning}</p>
+          {/* Result thumbnail */}
+          {phase === "result" && result && (
+            <div className="relative mx-6 mt-3 rounded-2xl overflow-hidden flex items-center gap-4 p-4"
+              style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${verdictColor}33` }}>
+              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                {mediaType === "image"
+                  ? <img src={mediaUrl} alt="analyzed" className="w-full h-full object-cover" />
+                  : <video src={mediaUrl} className="w-full h-full object-cover" muted />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white/50 text-[10px] font-mono uppercase tracking-widest mb-1">Analysis Target</p>
+                <p className="text-white text-xs font-semibold truncate">{mediaType === "image" ? "Image" : "Video"} file</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ width: result.confidence + "%", background: `linear-gradient(90deg, ${verdictColor}, ${verdictColor}88)` }} />
+                  </div>
+                  <span className="text-[10px] font-mono shrink-0" style={{ color: verdictColor }}>{result.confidence}%</span>
+                </div>
+              </div>
             </div>
+          )}
 
-            <div className="mb-5">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2.5">
-                {isAI ? "AI Indicators Detected" : "Authenticity Markers"}
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {(result.topIndicators || []).slice(0, 5).map((feat, i) => (
-                  <div key={i} className="flex items-center gap-2.5"
-                    style={{ animation: `featureSlide 0.3s ease-out ${i * 0.08}s both` }}>
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: verdictColor }} />
-                    <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.55)" }}>{feat}</span>
+          {/* Progress bar — scanning phase */}
+          {phase === "scanning" && (
+            <div className="px-6 mt-5">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Scan depth</span>
+                <span className="text-[10px] font-mono" style={{ color: "#6C5CE7" }}>{Math.floor(scanProgress)}%</span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <div className="h-full rounded-full transition-all duration-300"
+                  style={{ width: scanProgress + "%", background: "linear-gradient(90deg,#6C5CE7,#a29bfe)", animation: "progressPulse 1s ease-in-out infinite" }} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {["Pixel entropy", "Edge coherence", "Noise patterns", "Metadata scan"].map((label, i) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: scanProgress > (i + 1) * 22 ? "#6C5CE7" : "rgba(255,255,255,0.15)", transition: "background 0.5s" }} />
+                    <span className="text-[10px] font-mono text-white/30">{label}</span>
                   </div>
                 ))}
               </div>
             </div>
+          )}
 
-            {/* Detailed scores */}
-            {result.detailedScores && (
-              <div className="mb-4 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-3">Forensic Score Breakdown</p>
-                <div className="flex flex-col gap-2">
-                  {Object.entries(result.detailedScores).map(([key, val]) => {
-                    const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase());
-                    const color = isAI ? (val > 60 ? "#ef4444" : "#f97316") : (val > 60 ? "#22c55e" : "#86efac");
-                    return (
-                      <div key={key} className="flex items-center gap-3">
-                        <span className="text-[10px] font-mono text-white/30 w-36 shrink-0">{label}</span>
-                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: val + "%", background: color }} />
-                        </div>
-                        <span className="text-[10px] font-mono shrink-0" style={{ color }}>{val}</span>
-                      </div>
-                    );
-                  })}
+          {/* Analyzing phase */}
+          {phase === "analyzing" && (
+            <div className="px-6 mt-5 flex items-center justify-center gap-4">
+              <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                <div className="absolute inset-0 rounded-full border-2 border-transparent"
+                  style={{ borderTopColor: "#6C5CE7", animation: "orbitalRing 1s linear infinite" }} />
+                <div className="absolute inset-1 rounded-full border border-transparent"
+                  style={{ borderBottomColor: "#a29bfe", animation: "orbitalRingRev 0.7s linear infinite" }} />
+                <span className="material-symbols-outlined text-[#6C5CE7] text-xl">psychology</span>
+              </div>
+              <div>
+                <p className="text-white/80 text-sm font-semibold mb-1">Gemini Vision analysis</p>
+                <p className="text-white/30 text-xs font-mono">Running pixel-level forensic analysis...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error phase */}
+          {phase === "error" && (
+            <div className="px-6 mt-5 flex flex-col items-center gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <span className="material-symbols-outlined text-red-400 text-2xl">error</span>
+              </div>
+              <div>
+                <p className="text-red-400 font-bold text-sm mb-1">Scan Failed</p>
+                <p className="text-white/40 text-xs leading-relaxed max-w-xs">{errorMsg}</p>
+              </div>
+              {!apiKey && (
+                <p className="text-[10px] font-mono text-white/20">
+                  Set your Gemini key in the AI Bot panel (🤖) to enable Reality Scanner
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Result */}
+          {phase === "result" && result && (
+            <div className="px-6 mt-5" style={{ animation: "verdictReveal 0.5s cubic-bezier(0.16,1,0.3,1)" }}>
+              <div className="flex items-center justify-center mb-5">
+                <div className="px-8 py-3 rounded-2xl flex items-center gap-3"
+                  style={{ background: `${verdictColor}18`, border: `1.5px solid ${verdictColor}55`, boxShadow: `0 0 30px ${verdictGlow}` }}>
+                  <span className="material-symbols-outlined text-2xl" style={{ color: verdictColor }}>
+                    {isAI ? "smart_toy" : "verified"}
+                  </span>
+                  <div>
+                    <p className="font-black text-lg tracking-widest font-mono" style={{ color: verdictColor }}>
+                      {isAI ? "AI GENERATED" : "AUTHENTIC"}
+                    </p>
+                    <p className="text-[10px] font-mono text-center" style={{ color: verdictColor + "99" }}>
+                      {result.confidence}% confidence · Risk: {result.riskLevel}
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <p className="text-[10px] text-center font-mono pb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
-              Powered by Google Gemini Vision · Results are probabilistic
-            </p>
-          </div>
-        )}
+              <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2">Analysis Summary</p>
+                <p className="text-white/75 text-xs leading-relaxed">{result.reasoning}</p>
+              </div>
+
+              <div className="mb-5">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2.5">
+                  {isAI ? "AI Indicators Detected" : "Authenticity Markers"}
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {(result.topIndicators || []).slice(0, 5).map((feat, i) => (
+                    <div key={i} className="flex items-center gap-2.5"
+                      style={{ animation: `featureSlide 0.3s ease-out ${i * 0.08}s both` }}>
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: verdictColor }} />
+                      <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.55)" }}>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Detailed scores */}
+              {result.detailedScores && (
+                <div className="mb-4 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-3">Forensic Score Breakdown</p>
+                  <div className="flex flex-col gap-2">
+                    {Object.entries(result.detailedScores).map(([key, val]) => {
+                      const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase());
+                      const color = isAI ? (val > 60 ? "#ef4444" : "#f97316") : (val > 60 ? "#22c55e" : "#86efac");
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="text-[10px] font-mono text-white/30 w-36 shrink-0">{label}</span>
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: val + "%", background: color }} />
+                          </div>
+                          <span className="text-[10px] font-mono shrink-0" style={{ color }}>{val}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10px] text-center font-mono pb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+                Powered by Google Gemini Vision · Results are probabilistic
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 mt-2"
+        <div className="flex items-center justify-between px-6 py-4 shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-[10px] font-mono" style={{ color: "rgba(108,92,231,0.5)" }}>
             {phase === "result" ? "ANALYSIS COMPLETE"
@@ -893,7 +896,7 @@ function MessageBubble({ msg, isSent, isDark, onReact, onReply, reactions }) {
 }
 
 // ── Conversation Row ──────────────────────────────────────────────────────────
-function ConversationRow({ contact, unread, lastMsg, active, onClick, isOnline }) {
+function ConversationRow({ contact, unread, lastMsg, active, onClick, onDelete, isOnline }) {
   const { settings } = useAppSettings();
   const isDark = settings.theme === "dark";
   const textPri = isDark ? "text-white" : "text-on-surface";
@@ -902,7 +905,7 @@ function ConversationRow({ contact, unread, lastMsg, active, onClick, isOnline }
   const hoverCls = isDark ? "hover:bg-white/6" : "hover:bg-surface-container-low/50";
 
   return (
-    <div className="px-4 py-1">
+    <div className="px-4 py-1 group">
       <div onClick={onClick}
         className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-200 relative ${active ? activeCls : hoverCls}`}>
         {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#6C5CE7] rounded-r-full" />}
@@ -925,7 +928,16 @@ function ConversationRow({ contact, unread, lastMsg, active, onClick, isOnline }
             <p className={`text-xs truncate pr-2 ${unread > 0 ? "text-[#6C5CE7] font-medium" : textSec}`}>
               {lastMsg ? (lastMsg.type !== "text" && lastMsg.type !== "sticker" ? "Sent a " + lastMsg.type : lastMsg.content) : "Start a conversation"}
             </p>
-            {unread > 0 && <div className="w-4 h-4 bg-[#6C5CE7] text-[10px] text-white flex items-center justify-center rounded-full shrink-0">{unread}</div>}
+            <div className="flex items-center gap-2">
+              {unread > 0 && <div className="w-4 h-4 bg-[#6C5CE7] text-[10px] text-white flex items-center justify-center rounded-full shrink-0">{unread}</div>}
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(contact); }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-500/20 text-red-400"
+                title={contact.isGroup ? "Delete Group" : "Delete Chat"}
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1174,13 +1186,22 @@ function CallsPanel({ contacts, onCall, isOnline }) {
                   </button>
                 </div>
 
-                {/* Audio player */}
-                <audio
-                  controls
-                  src={`${API_URL}${rec.fileUrl}`}
-                  className="w-full h-8 rounded-lg"
-                  style={{ accentColor: "#6C5CE7" }}
-                />
+                {/* Media player */}
+                {rec.callType === "video" ? (
+                  <video
+                    controls
+                    src={`${API_URL}${rec.fileUrl}`}
+                    className="w-full aspect-video rounded-lg object-cover bg-black mt-2"
+                    style={{ accentColor: "#6C5CE7" }}
+                  />
+                ) : (
+                  <audio
+                    controls
+                    src={`${API_URL}${rec.fileUrl}`}
+                    className="w-full h-8 rounded-lg mt-2"
+                    style={{ accentColor: "#6C5CE7" }}
+                  />
+                )}
               </div>
             ))}
           </>
@@ -1867,7 +1888,7 @@ function GoLivePanel({ contacts, currentUser, isDark, textPrimary, textSecondary
 
     const onLiveViewerJoined = ({ viewerId, joinedViewers: nextJoinedViewers, viewerName }) => {
       setJoinedViewerIds(nextJoinedViewers || []);
-      if (viewerId) createHostPeer(viewerId);
+      // Peer creation for video is handled purely by onLiveStreamRequested to prevent double-signaling race condition
       if (viewerName) {
         setLiveChat((prev) => [...prev, { id: Date.now() + Math.random(), user: "System", text: `${viewerName} joined the live.`, ts: new Date() }]);
       }
@@ -1890,8 +1911,8 @@ function GoLivePanel({ contacts, currentUser, isDark, textPrimary, textSecondary
 
     const onLiveOffer = ({ hostId, signal }) => {
       if (sessionRoleRef.current === "viewer" && liveSessionRef.current?.hostId === hostId) {
-        if (!viewerPeerRef.current) {
-          console.log("🤝 Receiving initial live offer from host:", hostId);
+        if (!viewerPeerRef.current || signal?.type === "offer") {
+          console.log("🤝 Receiving live offer from host:", hostId);
           createViewerPeer(hostId, signal);
         } else {
           console.log("📡 Receiving trickle ICE candidate/signal from host");
@@ -2196,39 +2217,38 @@ function GoLivePanel({ contacts, currentUser, isDark, textPrimary, textSecondary
   );
 
   if (mode === "live-video" || mode === "viewer-video") return (
-    <section className={`flex-1 h-full flex overflow-hidden transition-colors ${isDark ? "bg-[#0a0a0f]" : "bg-[#f5f5f5]"}`}
+    <section className="flex-1 h-full flex overflow-hidden transition-colors bg-black"
       style={{ animation: "fadeUp 0.3s ease-out" }}>
 
-      <div className="flex-1 flex flex-col relative">
+      <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
         <video
           ref={bindVideoRef}
           autoPlay
           playsInline
           muted={sessionRole === "host"}
-          className="flex-1 object-cover w-full bg-black"
-          style={{ maxHeight: "70%" }}
+          className="w-full h-full object-cover bg-black absolute inset-0"
         />
 
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full">
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full pointer-events-auto">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             <span className="text-white text-xs font-bold">LIVE</span>
             <span className="text-white/60 text-xs">{fmt(liveTime)}</span>
           </div>
-          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full pointer-events-auto">
             <span className="material-symbols-outlined text-white text-sm">visibility</span>
             <span className="text-white text-xs">{sessionRole === "host" ? joinedViewerIds.length : joinedViewerIds.length + 1} watching</span>
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 px-4 py-3"
-          style={{ background: "linear-gradient(transparent,rgba(0,0,0,0.7))" }}>
-          <p className="text-white font-bold text-sm">{title || (sessionRole === "host" ? `${currentUser?.username}'s Live` : liveSession?.title)}</p>
-          <p className="text-white/50 text-xs">{sessionRole === "host" ? `Visible to ${viewers.length} invited viewers` : `Hosted by ${liveSession?.hostName}`}</p>
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-4 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)" }}>
+          <p className="text-white font-bold text-base">{title || (sessionRole === "host" ? `${currentUser?.username}'s Live` : liveSession?.title)}</p>
+          <p className="text-white/60 text-xs mt-0.5">{sessionRole === "host" ? `Visible to ${viewers.length} invited viewers` : `Hosted by ${liveSession?.hostName}`}</p>
         </div>
 
         <button onClick={endLive}
-          className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold transition-all hover:scale-105"
+          className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold transition-all hover:scale-105 z-20"
           style={{ background: sessionRole === "host" ? "rgba(239,68,68,0.9)" : "rgba(15,23,42,0.75)", backdropFilter: "blur(8px)" }}>
           {sessionRole === "host" ? "End Live" : "Leave"}
         </button>
@@ -2801,7 +2821,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
 // MAIN CHAT PAGE
 // ════════════════════════════════════════════════════════════════════════════
 export default function ChatPage() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { socket, isOnline: isOnlineRaw, incomingCall, setIncomingCall } = useSocket();
   const { settings, updateSetting } = useAppSettings();
 
@@ -3098,13 +3118,45 @@ export default function ChatPage() {
 
 
   // ─── CLEAR CHAT ─────────────────────────────────────────────
-  const clearChat = () => {
+  const clearChat = async () => {
     if (!activeContact) return;
     if (!window.confirm(`Clear all messages with ${activeContact.username}? This cannot be undone.`)) return;
-    setMessages([]);
-    setReactions({});
-    setLastMsgMap(prev => { const n = { ...prev }; delete n[activeContact._id]; return n; });
-    setShowInfoMenu(false);
+    try {
+      await axios.delete(`${API}/api/messages/clear/${activeContact._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages([]);
+      setReactions({});
+      setLastMsgMap(prev => { const n = { ...prev }; delete n[activeContact._id]; return n; });
+      setShowInfoMenu(false);
+    } catch (err) {
+      alert("Failed to clear chat: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const deleteChat = async (contact) => {
+    const type = contact.isGroup ? "group" : "chat";
+    if (!window.confirm(`Delete this ${type} completely from database?`)) return;
+    try {
+      if (contact.isGroup) {
+        await axios.delete(`${API}/api/groups/${contact._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setGroups(prev => prev.filter(g => g._id !== contact._id));
+      } else {
+        // For individual chats, deleting all messages as requested
+        await axios.delete(`${API}/api/messages/clear/${contact._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      if (activeContact?._id === contact._id) {
+        setActiveContact(null);
+        setMessages([]);
+      }
+      setLastMsgMap(prev => { const n = { ...prev }; delete n[contact._id]; return n; });
+    } catch (err) {
+      alert(`Failed to delete ${type}: ` + (err.response?.data?.message || err.message));
+    }
   };
 
   // ─── EXPORT CHAT AS PDF ──────────────────────────────────────
@@ -3405,6 +3457,7 @@ export default function ChatPage() {
                     lastMsg={lastMsgMap[contact._id] || null}
                     active={activeContact?._id === contact._id}
                     onClick={() => { setActiveContact(contact); setSearch(""); }}
+                    onDelete={deleteChat}
                     isOnline={isOnline(contact._id)} />
                 ))}
                 {displayContacts.length === 0 && <p className={`text-center text-sm mt-8 px-6 ${textSecondary}`}>{search ? "No users found" : "No contacts yet"}</p>}

@@ -153,4 +153,27 @@ router.get("/:userId", protect, async (req, res) => {
   }
 });
 
+// DELETE /api/messages/clear/:chatId - clear all messages in a conversation
+router.delete("/clear/:chatId", protect, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const Group = require("../models/Group");
+    const isGroup = await Group.exists({ _id: chatId }).catch(() => false);
+
+    if (isGroup) {
+      await Message.deleteMany({ receiverGroup: chatId });
+    } else {
+      await Message.deleteMany({
+        $or: [
+          { sender: req.user._id, receiver: chatId },
+          { sender: chatId, receiver: req.user._id },
+        ],
+      });
+    }
+    res.json({ message: "Chat cleared successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

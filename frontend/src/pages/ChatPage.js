@@ -2824,6 +2824,7 @@ export default function ChatPage() {
   const { user, token, logout } = useAuth();
   const { socket, isOnline: isOnlineRaw, incomingCall, setIncomingCall } = useSocket();
   const { settings, updateSetting } = useAppSettings();
+  const API_URL = process.env.REACT_APP_SERVER_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5000");
 
   const isOnline = (uid) => isOnlineRaw(uid);
 
@@ -3404,7 +3405,7 @@ export default function ChatPage() {
             className="hidden md:flex mt-4 mb-2 mx-auto relative group shrink-0">
             {(settings.avatarUrl || user?.avatar) ? (
               <img
-                src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API + user.avatar) : null)}
+                src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API_URL + user.avatar) : null)}
                 alt="profile"
                 className="w-10 h-10 rounded-2xl object-cover ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all shadow-lg"
               />
@@ -3421,7 +3422,7 @@ export default function ChatPage() {
         <button onClick={() => setActiveTab("settings")} title="My Profile"
           className="md:hidden relative shrink-0 ml-1 mr-2">
           {(settings.avatarUrl || user?.avatar) ? (
-            <img src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API + user.avatar) : null)} alt="profile"
+            <img src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API_URL + user.avatar) : null)} alt="profile"
               className="w-8 h-8 rounded-xl object-cover ring-2 ring-[#6C5CE7]/40" />
           ) : (
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center font-bold text-white text-sm">

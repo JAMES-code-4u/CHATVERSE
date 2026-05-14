@@ -5,11 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/avatars/"),
-  filename: (req, file, cb) =>
-    cb(null, `${req.user._id}-${Date.now()}${path.extname(file.originalname)}`),
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // GET /api/users - search users
@@ -44,9 +40,12 @@ const fs = require("fs");
 // PUT /api/users/avatar
 router.put("/avatar", protect, upload.single("avatar"), async (req, res) => {
   try {
-    // Read the file and convert to base64 Data URI to save directly in the database
-    const fileData = fs.readFileSync(req.file.path);
-    const base64Image = `data:${req.file.mimetype};base64,${fileData.toString("base64")}`;
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Use the file buffer from memory storage to create the base64 string
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -56,9 +55,6 @@ router.put("/avatar", protect, upload.single("avatar"), async (req, res) => {
     
     // Broadcast updated avatar to all online users
     await broadcastOnlineUsers();
-    
-    // Optionally remove the file from disk since it's now in the database
-    fs.unlinkSync(req.file.path);
     
     res.json({ user });
   } catch (err) {

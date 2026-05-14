@@ -76,7 +76,7 @@ export default function SettingsPanel({ user, logout }) {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState("");
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatar ? `${API}${user.avatar}` : null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : `${API}${user.avatar}`) : null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [storageCleared, setStorageCleared] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -122,7 +122,7 @@ export default function SettingsPanel({ user, logout }) {
       // Persist the server URL into settings so the sidebar profile button reflects it immediately
       const serverPath = res.data?.avatar || res.data?.user?.avatar;
       if (serverPath) {
-        updateSetting("avatarUrl", `${API}${serverPath}`);
+        updateSetting("avatarUrl", serverPath.startsWith("data:") ? serverPath : `${API}${serverPath}`);
       } else {
         // Fallback: store the local blob preview so sidebar updates even if server path isn't returned
         updateSetting("avatarUrl", preview);

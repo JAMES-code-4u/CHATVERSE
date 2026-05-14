@@ -146,7 +146,7 @@ function Avatar({ user: u, size = "md" }) {
       <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
     </div>
   );
-  const src = u?.avatar ? API + u.avatar : null;
+  const src = u?.avatar ? (u.avatar.startsWith("data:") ? u.avatar : API + u.avatar) : null;
   return src
     ? <img src={src} alt={u?.username} className={cls + " object-cover shrink-0"} />
     : <div className={cls + " bg-primary-container flex items-center justify-center font-bold text-white shrink-0"}>{u?.username?.[0]?.toUpperCase() || "?"}</div>;
@@ -905,7 +905,7 @@ function ConversationRow({ contact, unread, lastMsg, active, onClick, onDelete, 
   const hoverCls = isDark ? "hover:bg-white/6" : "hover:bg-surface-container-low/50";
 
   return (
-    <div className="px-4 py-1 group">
+    <div className="px-4 py-1 group" onContextMenu={(e) => { e.preventDefault(); onDelete(contact); }}>
       <div onClick={onClick}
         className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-200 relative ${active ? activeCls : hoverCls}`}>
         {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#6C5CE7] rounded-r-full" />}
@@ -930,13 +930,6 @@ function ConversationRow({ contact, unread, lastMsg, active, onClick, onDelete, 
             </p>
             <div className="flex items-center gap-2">
               {unread > 0 && <div className="w-4 h-4 bg-[#6C5CE7] text-[10px] text-white flex items-center justify-center rounded-full shrink-0">{unread}</div>}
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDelete(contact); }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-500/20 text-red-400"
-                title={contact.isGroup ? "Delete Group" : "Delete Chat"}
-              >
-                <span className="material-symbols-outlined text-sm">delete</span>
-              </button>
             </div>
           </div>
         </div>
@@ -2417,13 +2410,14 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
   const { updateSetting, updateMany } = useAppSettings();
   const { token } = useAuth();
 
-  const [avatarSrc, setAvatarSrc] = useState(settings.avatarUrl || (user?.avatar ? `${API_URL}${user.avatar}` : null));
+  const [avatarSrc, setAvatarSrc] = useState(settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : `${API_URL}${user.avatar}`) : null));
   const [uploading, setUploading] = useState(false);
   const [displayName, setDisplayName] = useState(settings.displayName || user?.username || "");
   const [bio, setBio] = useState(settings.bio || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [hoverAvatar, setHoverAvatar] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
   const fileRef = useRef(null);
 
   // AI Avatar generator state
@@ -2446,17 +2440,16 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
     if (settings.avatarUrl) setAvatarSrc(settings.avatarUrl);
   }, [settings.avatarUrl]);
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await uploadAvatarFile(file);
+    const blobUrl = URL.createObjectURL(file);
+    setAvatarSrc(blobUrl);
+    setPendingAvatarFile(file);
     e.target.value = "";
   };
 
   const uploadAvatarFile = async (file) => {
-    const blobUrl = URL.createObjectURL(file);
-    setAvatarSrc(blobUrl);
-    updateSetting("avatarUrl", blobUrl);
     setUploading(true);
     try {
       const fd = new FormData();
@@ -2466,7 +2459,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
       });
       const serverPath = res.data?.avatar || res.data?.user?.avatar;
       if (serverPath) {
-        const serverUrl = `${API_URL}${serverPath}`;
+        const serverUrl = serverPath.startsWith("data:") ? serverPath : `${API_URL}${serverPath}`;
         setAvatarSrc(serverUrl);
         updateSetting("avatarUrl", serverUrl);
       }
@@ -2490,10 +2483,12 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           canvas.width = 200; canvas.height = 200;
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, 200, 200);
-          canvas.toBlob(async (pngBlob) => {
+          canvas.toBlob((pngBlob) => {
             URL.revokeObjectURL(svgObjectUrl);
             const file = new File([pngBlob], `ai-avatar-${Date.now()}.png`, { type: "image/png" });
-            await uploadAvatarFile(file);
+            const blobUrl = URL.createObjectURL(file);
+            setAvatarSrc(blobUrl);
+            setPendingAvatarFile(file);
             setShowAiModal(false);
             resolve();
           }, "image/png");
@@ -2512,6 +2507,10 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
     setSaving(true);
     try {
       updateMany({ displayName, bio });
+      if (pendingAvatarFile) {
+        await uploadAvatarFile(pendingAvatarFile);
+        setPendingAvatarFile(null);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally { setSaving(false); }
@@ -2559,15 +2558,16 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
 
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full"
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
           style={{ background: "radial-gradient(circle, rgba(108,92,231,0.06) 0%, transparent 65%)" }} />
       </div>
 
+      {/* Inner centered area */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-sm px-8"
         style={{ animation: "fadeUp 0.4s ease-out" }}>
 
         {/* ── Avatar ─────────────────────────────────────────────────── */}
-        <div className="relative mb-7"
+        <div className="relative mb-5"
           onMouseEnter={() => setHoverAvatar(true)}
           onMouseLeave={() => setHoverAvatar(false)}
           onClick={() => fileRef.current?.click()}
@@ -2576,7 +2576,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           {/* Spinning gradient ring */}
           <div className="absolute rounded-full"
             style={{
-              width: 210, height: 210, top: -7, left: -7,
+              width: 174, height: 174, top: -7, left: -7,
               background: "conic-gradient(from 0deg, #6C5CE7, #00d4ff, #a29bfe, #6C5CE7)",
               animation: "spin 6s linear infinite",
               borderRadius: "50%",
@@ -2590,17 +2590,17 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
 
           {/* Pulse ring */}
           <div className="absolute rounded-full"
-            style={{ width: 204, height: 204, top: -4, left: -4, border: "2px solid rgba(108,92,231,0.25)", animation: "avatarPulse 2.5s ease-in-out infinite" }} />
+            style={{ width: 168, height: 168, top: -4, left: -4, border: "2px solid rgba(108,92,231,0.25)", animation: "avatarPulse 2.5s ease-in-out infinite" }} />
 
           {/* Photo */}
-          <div className="rounded-full overflow-hidden"
-            style={{ width: 196, height: 196, boxShadow: "0 0 40px rgba(108,92,231,0.3), 0 16px 48px rgba(0,0,0,0.4)" }}>
+          <div className="rounded-full overflow-hidden relative"
+            style={{ width: 160, height: 160, boxShadow: "0 0 30px rgba(108,92,231,0.25), 0 10px 30px rgba(0,0,0,0.3)" }}>
             {avatarSrc
               ? <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover"
                 style={{ filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s" }} />
               : <div className="w-full h-full flex items-center justify-center font-black"
                 style={{
-                  background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", fontSize: 68, color: "#fff",
+                  background: "linear-gradient(135deg,#6C5CE7,#a29bfe)", fontSize: 56, color: "#fff",
                   filter: hoverAvatar ? "brightness(0.65)" : "brightness(1)", transition: "filter 0.25s"
                 }}>
                 {initial}
@@ -2612,8 +2612,8 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           {hoverAvatar && (
             <div className="absolute inset-0 rounded-full flex flex-col items-center justify-center gap-1 pointer-events-none"
               style={{ zIndex: 5 }}>
-              <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
-              <span className="text-white text-xs font-semibold">Change Photo</span>
+              <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+              <span className="text-white text-[10px] font-semibold">Change Photo</span>
             </div>
           )}
 
@@ -2621,7 +2621,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           {uploading && (
             <div className="absolute inset-0 rounded-full flex items-center justify-center"
               style={{ background: "rgba(0,0,0,0.55)", zIndex: 6 }}>
-              <svg className="w-10 h-10 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -2629,7 +2629,7 @@ function ProfilePreviewPanel({ isDark, textPrimary, textSecondary, chatBg, user,
           )}
 
           {/* Online dot */}
-          <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 bg-green-500"
+          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 bg-green-500"
             style={{ borderColor: isDark ? "#13141c" : "#f0eeff", boxShadow: "0 0 10px rgba(34,197,94,0.7)", zIndex: 7 }} />
 
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -2870,6 +2870,7 @@ export default function ChatPage() {
   const [showVirtualBg, setShowVirtualBg] = useState(false);
   const [panelWidth, setPanelWidth] = useState(320); // Fix 2: resizable panel
   const [showInfoMenu, setShowInfoMenu] = useState(false); // Info dropdown
+  const [showNavDropdown, setShowNavDropdown] = useState(false);
 
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -2905,7 +2906,7 @@ export default function ChatPage() {
     axios.get("/api/groups").then(r => setGroups(r.data.groups || [])).catch(() => { });
     // Seed sidebar avatar from server profile on first load or if changed
     if (user?.avatar) {
-      const serverUrl = `${API}${user.avatar}`;
+      const serverUrl = user.avatar.startsWith("data:") ? user.avatar : `${API}${user.avatar}`;
       if (settings.avatarUrl !== serverUrl) {
         updateSetting("avatarUrl", serverUrl);
       }
@@ -3333,20 +3334,35 @@ export default function ChatPage() {
         md:top-0 md:left-0 md:h-full md:w-[72px] md:flex-col md:py-5 md:px-0 md:justify-start`}>
 
         {/* Nav items — evenly distributed on mobile, stacked on desktop */}
-        <nav className="flex flex-row md:flex-col gap-1 flex-1 md:flex-none justify-evenly md:justify-start items-center w-full md:w-auto md:gap-1 md:px-2">
-          {navItems.map(item => (
-            <button key={item.key} onClick={() => setActiveTab(item.key)} title={item.label}
+        <nav className="flex flex-row md:flex-col gap-1 flex-1 md:flex-none justify-evenly md:justify-start items-center w-full md:w-auto md:gap-1 md:px-2 relative">
+          <div className="relative flex flex-col md:w-full items-center">
+            <button onClick={() => { setActiveTab("chats"); setShowNavDropdown(!showNavDropdown); }} title="Chats"
               className={`relative flex flex-col items-center justify-center gap-0.5 w-12 h-12 md:w-full md:h-auto md:py-2.5 md:px-1 rounded-2xl transition-all duration-200
-                ${activeTab === item.key
+                ${(activeTab === "chats" || ["contacts", "calls", "stories", "live"].includes(activeTab))
                   ? isDark ? "bg-[#6C5CE7]/15 text-[#6C5CE7]" : "bg-[#6C5CE7]/10 text-[#6C5CE7]"
                   : isDark ? "text-white/35 hover:bg-white/5 hover:text-white/70" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 }`}>
-              <span className={`material-symbols-outlined transition-all ${activeTab === item.key ? "text-[22px]" : "text-[20px]"}`}>{item.icon}</span>
-              <span className={`hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all ${activeTab === item.key ? "opacity-100" : "opacity-0"}`}>{item.label}</span>
-              {item.badge > 0 && <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-0.5">{item.badge > 9 ? "9+" : item.badge}</span>}
-              {item.hasDot && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_4px_rgba(239,68,68,0.8)]" />}
+              <span className={`material-symbols-outlined transition-all ${(activeTab === "chats" || ["contacts", "calls", "stories", "live"].includes(activeTab)) ? "text-[22px]" : "text-[20px]"}`}>chat_bubble</span>
+              <span className={`hidden md:block text-[9px] font-semibold tracking-wide uppercase transition-all ${(activeTab === "chats" || ["contacts", "calls", "stories", "live"].includes(activeTab)) ? "opacity-100" : "opacity-0"}`}>Chats</span>
+              {totalUnread > 0 && <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-0.5">{totalUnread > 9 ? "9+" : totalUnread}</span>}
             </button>
-          ))}
+
+            {/* Dropdown Menu */}
+            {showNavDropdown && (
+              <div className={`absolute bottom-full mb-2 md:bottom-auto md:top-full md:mt-2 z-40 md:w-full rounded-2xl shadow-2xl flex flex-row md:flex-col items-center gap-6 py-6 px-2
+                ${isDark ? "bg-[#6C5CE7]/15 border border-[#6C5CE7]/20 backdrop-blur-xl" : "bg-[#6C5CE7]/10 border border-[#6C5CE7]/20 backdrop-blur-xl"}`}
+                style={{ animation: "fadeUp 0.15s ease-out" }}>
+                {navItems.filter(i => i.key !== "chats").map(item => (
+                  <button key={item.key} onClick={() => setActiveTab(item.key)} title={item.label}
+                    className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:bg-[#6C5CE7]/20
+                      ${activeTab === item.key ? "text-[#6C5CE7] bg-[#6C5CE7]/20" : isDark ? "text-white/70" : "text-slate-600"}`}>
+                    <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                    {item.hasDot && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_4px_rgba(239,68,68,0.8)]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* BOTTOM SECTION (Divider + Utilities + Desktop Profile) */}
@@ -3388,7 +3404,7 @@ export default function ChatPage() {
             className="hidden md:flex mt-4 mb-2 mx-auto relative group shrink-0">
             {(settings.avatarUrl || user?.avatar) ? (
               <img
-                src={settings.avatarUrl || (user?.avatar ? API + user.avatar : null)}
+                src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API + user.avatar) : null)}
                 alt="profile"
                 className="w-10 h-10 rounded-2xl object-cover ring-2 ring-[#6C5CE7]/40 group-hover:ring-[#6C5CE7] transition-all shadow-lg"
               />
@@ -3405,7 +3421,7 @@ export default function ChatPage() {
         <button onClick={() => setActiveTab("settings")} title="My Profile"
           className="md:hidden relative shrink-0 ml-1 mr-2">
           {(settings.avatarUrl || user?.avatar) ? (
-            <img src={settings.avatarUrl || (user?.avatar ? API + user.avatar : null)} alt="profile"
+            <img src={settings.avatarUrl || (user?.avatar ? (user.avatar.startsWith("data:") ? user.avatar : API + user.avatar) : null)} alt="profile"
               className="w-8 h-8 rounded-xl object-cover ring-2 ring-[#6C5CE7]/40" />
           ) : (
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6C5CE7] to-[#a19afd] flex items-center justify-center font-bold text-white text-sm">

@@ -39,18 +39,26 @@ router.get("/:id", protect, async (req, res) => {
 
 const { broadcastOnlineUsers } = require("../socket/socketHandler");
 
+const fs = require("fs");
+
 // PUT /api/users/avatar
 router.put("/avatar", protect, upload.single("avatar"), async (req, res) => {
   try {
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    // Read the file and convert to base64 Data URI to save directly in the database
+    const fileData = fs.readFileSync(req.file.path);
+    const base64Image = `data:${req.file.mimetype};base64,${fileData.toString("base64")}`;
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { avatar: avatarUrl },
+      { avatar: base64Image },
       { new: true }
     ).select("-password");
     
     // Broadcast updated avatar to all online users
     await broadcastOnlineUsers();
+    
+    // Optionally remove the file from disk since it's now in the database
+    fs.unlinkSync(req.file.path);
     
     res.json({ user });
   } catch (err) {

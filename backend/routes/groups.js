@@ -66,15 +66,11 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// DELETE /api/groups/:groupId - Delete a group (admin only)
+// DELETE /api/groups/:groupId - Delete a group
 router.delete("/:groupId", protect, async (req, res) => {
   try {
     const group = await Group.findById(req.params.groupId);
     if (!group) return res.status(404).json({ message: "Group not found" });
-
-    if (group.admin.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Only the admin can delete the group" });
-    }
 
     await Group.findByIdAndDelete(req.params.groupId);
     const Message = require("../models/Message");

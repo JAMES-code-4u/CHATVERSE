@@ -14,6 +14,7 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
   const [camOff, setCamOff] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const callDurationRef = useRef(0);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const timerRef = useRef(null);
@@ -47,7 +48,17 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
 
         if (!isIncoming) {
           // Caller: initiate peer
-          const p = new SimplePeer({ initiator: true, trickle: false, stream: s });
+          const p = new SimplePeer({ 
+            initiator: true, 
+            trickle: true, 
+            stream: s,
+            config: {
+              iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:global.stun.twilio.com:3478" }
+              ]
+            }
+          });
           p.on("signal", (signal) => {
             socket?.emit("callUser", {
               userToCall: callData.userId,
@@ -79,7 +90,10 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
     socket.on("callAccepted", ({ signal }) => {
       peerRef.current?.signal(signal);
       setCallActive(true);
-      timerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000);
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCallDuration(d => { callDurationRef.current = d + 1; return d + 1; });
+      }, 1000);
     });
 
     socket.on("iceCandidate", ({ candidate }) => {
@@ -98,7 +112,17 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
 
     // If incoming, answer the call
     if (isIncoming && stream) {
-      const p = new SimplePeer({ initiator: false, trickle: false, stream });
+      const p = new SimplePeer({ 
+        initiator: false, 
+        trickle: true, 
+        stream,
+        config: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:global.stun.twilio.com:3478" }
+          ]
+        }
+      });
       p.on("signal", (signal) => {
         socket.emit("answerCall", { to: callData.from, signal });
       });
@@ -109,7 +133,10 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
       peerRef.current = p;
       setPeer(p);
       setCallActive(true);
-      timerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000);
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCallDuration(d => { callDurationRef.current = d + 1; return d + 1; });
+      }, 1000);
     }
 
     return () => {
@@ -225,7 +252,7 @@ export default function CallModal({ callData, onEnd, isIncoming = false, localSt
         formData.append("recording", blob, `recording_${Date.now()}.webm`);
         formData.append("callType", isVideo ? "video" : "voice");
         formData.append("contactName", callData?.name || callData?.username || "Contact");
-        formData.append("duration", formatDuration(callDuration));
+        formData.append("duration", formatDuration(callDurationRef.current));
 
         fetch(`${API_URL}/api/recordings/save`, {
           method: "POST",

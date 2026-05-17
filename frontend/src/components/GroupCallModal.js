@@ -59,6 +59,7 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
   const [camOff, setCamOff] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const callDurationRef = useRef(0);
   const [isRecording, setIsRecording] = useState(false);
   const [callJoined, setCallJoined] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -137,7 +138,9 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
       // Tell server we joined
       socket?.emit("joinGroupCall", { groupId });
 
-      timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setCallDuration(d => { callDurationRef.current = d + 1; return d + 1; });
+      }, 1000);
     } catch (err) {
       console.error("Media error:", err);
       alert("Could not access camera/microphone. Please check permissions.");
@@ -171,7 +174,9 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
           socket?.emit("joinGroupCall", { groupId });
         }
 
-        timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+        timerRef.current = setInterval(() => {
+          setCallDuration(d => { callDurationRef.current = d + 1; return d + 1; });
+        }, 1000);
       } catch (err) {
         console.error("Media error:", err);
         alert("Could not access camera/microphone.");
@@ -192,17 +197,23 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
       const stream = localStreamRef.current;
       if (!stream) return;
       participants.forEach(pid => {
-        const peer = createPeer(pid, true, stream); // we initiate to existing members
+        // We are the newcomer, so we initiate connection to existing members
+        const peer = createPeer(pid, true, stream); 
         peersRef.current[pid] = { ...peersRef.current[pid], peer };
       });
     };
 
-    // A new peer just joined → existing members receive this, initiate peer to newcomer
+    // A new peer just joined → existing members receive this
     const onPeerJoined = ({ newPeerId, newPeerName, newPeerAvatar }) => {
       const stream = localStreamRef.current;
       if (!stream || !callJoined) return;
-      createPeer(newPeerId, true, stream);
-      // Add placeholder entry
+      
+      // We are an existing member. We wait for the newcomer to initiate.
+      // Create a peer with initiator: false to prepare for incoming signal.
+      const peer = createPeer(newPeerId, false, stream);
+      peersRef.current[newPeerId] = { ...peersRef.current[newPeerId], peer };
+
+      // Add placeholder entry in UI
       setPeers(prev => prev[newPeerId] ? prev : {
         ...prev,
         [newPeerId]: { stream: null, name: newPeerName, avatar: newPeerAvatar },
@@ -217,8 +228,9 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
       if (peersRef.current[fromUserId]?.peer) {
         peersRef.current[fromUserId].peer.signal(signal);
       } else {
-        // New peer we haven't created yet (non-initiator side)
+        // Fallback: if we didn't create the peer yet, create as non-initiator
         const peer = createPeer(fromUserId, false, stream);
+        peersRef.current[fromUserId] = { ...peersRef.current[fromUserId], peer };
         peer.signal(signal);
       }
     };
@@ -331,7 +343,7 @@ export default function GroupCallModal({ groupId, groupName, callType, onEnd, co
         formData.append("recording", blob, `group_recording_${Date.now()}.webm`);
         formData.append("callType", isVideo ? "video" : "voice");
         formData.append("contactName", groupName || "Group Call");
-        formData.append("duration", fmt(callDuration));
+        formData.append("duration", fmt(callDurationRef.current));
 
         fetch(`${API}/api/recordings/save`, {
           method: "POST",

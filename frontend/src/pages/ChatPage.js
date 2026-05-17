@@ -1315,14 +1315,67 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
 
   useEffect(() => { aiBottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
 
+  const renderAIText = (text) => {
+    if (!text) return null;
+    const parts = [];
+    let lastIndex = 0;
+    const imgRegex = /!\[([^\]]*)\]\s*\(([^)]+)\)/g;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+    const parseLinks = (str, prefix) => {
+      const subParts = [];
+      let subLast = 0;
+      str.replace(urlRegex, (match, url, offset) => {
+        if (offset > subLast) subParts.push(str.substring(subLast, offset));
+        subParts.push(
+          <a key={`${prefix}-link-${offset}`} href={url} target="_blank" rel="noreferrer" className="text-[#6C5CE7] hover:text-[#a19afd] underline break-all">
+            {url}
+          </a>
+        );
+        subLast = offset + match.length;
+      });
+      if (subLast < str.length) subParts.push(str.substring(subLast));
+      return subParts.length > 0 ? subParts : str;
+    };
+
+    text.replace(imgRegex, (match, alt, url, offset) => {
+      if (offset > lastIndex) {
+        parts.push(<span key={`t-${offset}`} className="whitespace-pre-wrap break-words">{parseLinks(text.substring(lastIndex, offset), offset)}</span>);
+      }
+      parts.push(
+        <div key={`img-${offset}`} className="mt-2 mb-2 flex flex-col gap-1 w-full overflow-hidden">
+          <a href={url} target="_blank" rel="noreferrer" className="block">
+            <img src={url} alt={alt || "Generated Image"} className="max-w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity" />
+          </a>
+          <a href={url} target="_blank" rel="noreferrer" className="text-[10px] text-[#6C5CE7] hover:text-[#a19afd] underline break-all break-words">
+            {url}
+          </a>
+        </div>
+      );
+      lastIndex = offset + match.length;
+    });
+
+    if (lastIndex < text.length) {
+      parts.push(<span key={`t-end`} className="whitespace-pre-wrap break-words">{parseLinks(text.substring(lastIndex), 'end')}</span>);
+    }
+    return <div className="break-words w-full overflow-hidden">{parts}</div>;
+  };
+
   const saveKey = () => {
     const k = keyDraft.trim();
     if (!k) return;
-    localStorage.setItem("cv_gemini_key", k);
-    setApiKey(k);
+    // Validate at least one key starts with AIza
+    const keys = k.split(",").map(x => x.trim()).filter(x => x);
+    const valid = keys.filter(x => x.startsWith("AIza"));
+    if (valid.length === 0) { alert("Please enter at least one valid Gemini API key (starts with AIza)"); return; }
+    const joined = valid.join(",");
+    localStorage.setItem("cv_gemini_key", joined);
+    setApiKey(joined);
     setShowKeyInput(false);
     setKeyDraft("");
   };
+
+  const keyCount = apiKey ? apiKey.split(",").filter(k => k.trim().startsWith("AIza")).length : 0;
 
   const sendToAI = async () => {
     const q = aiInput.trim();
@@ -1364,9 +1417,15 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
 
       setAiMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: data.reply }]);
     } catch (err) {
+      let msg = err.message || "Connection error. Please try again.";
+      if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("networkerror")) {
+        msg = "Cannot reach the server. Make sure the backend is running at " + API_URL;
+      } else if (msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid")) {
+        msg = "Invalid or expired API key. Please update your Gemini API key.";
+      }
       setAiMessages(prev => [...prev, {
         id: Date.now() + 1, role: "assistant",
-        content: `⚠️ ${err.message || "Connection error. Please try again."}`,
+        content: `⚠️ ${msg}`,
       }]);
     } finally {
       setAiLoading(false);
@@ -1425,14 +1484,15 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
       {showKeyInput && (
         <div className={`mx-4 mb-3 p-3 rounded-2xl border shrink-0 ${isDark ? "bg-white/5 border-white/10" : "bg-surface-container-low border-outline-variant/30"}`}
           style={{ animation: "fadeUp 0.2s ease-out" }}>
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-1.5 mb-1">
             <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" fill="#4285f4" /></svg>
-            <p className={`text-[11px] font-bold ${isDark ? "text-white/70" : "text-on-surface"}`}>Gemini API Key</p>
+            <p className={`text-[11px] font-bold ${isDark ? "text-white/70" : "text-on-surface"}`}>Gemini API Keys</p>
+            {keyCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-semibold">{keyCount} key{keyCount > 1 ? "s" : ""} active</span>}
           </div>
           <p className={`text-[10px] mb-2 leading-relaxed ${isDark ? "text-white/40" : "text-on-surface-variant"}`}>
-            Get your free key at{" "}
+            Add multiple keys (comma-separated) to avoid rate limits.{" "}
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer"
-              className="text-[#4285f4] hover:underline">aistudio.google.com</a>
+              className="text-[#4285f4] hover:underline">Get free keys →</a>
           </p>
           <div className="flex gap-2">
             <input
@@ -1440,7 +1500,7 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
               value={keyDraft}
               onChange={e => setKeyDraft(e.target.value)}
               onKeyDown={e => e.key === "Enter" && saveKey()}
-              placeholder="AIza..."
+              placeholder="AIzaKey1, AIzaKey2, AIzaKey3..."
               className={`flex-1 rounded-xl py-2 px-3 text-xs outline-none border transition-all focus:ring-2 focus:ring-[#4285f4]
                 ${isDark ? "bg-white/10 border-white/10 text-white placeholder:text-white/25" : "bg-white border-outline-variant text-on-surface"}`}
             />
@@ -1476,7 +1536,7 @@ function AIBotPanel({ isDark, textPrimary, textSecondary }) {
                 ? "text-white rounded-br-sm"
                 : isDark ? "bg-white/10 text-white rounded-bl-sm" : "bg-white text-on-surface shadow-sm rounded-bl-sm"}`}
               style={m.role === "user" ? { background: geminiSolid } : {}}>
-              {m.content}
+              {renderAIText(m.content)}
             </div>
           </div>
         ))}
@@ -2845,6 +2905,7 @@ export default function ChatPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [activeContact, setActiveContact] = useState(null);
   const [messages, setMessages] = useState([]);
+  const messageCache = useRef({});
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
@@ -2942,12 +3003,18 @@ export default function ChatPage() {
   useEffect(() => {
     if (!activeContact || activeContact.isAI) return;
 
-    // Clear old messages when switching contact
-    setMessages([]);
+    // Immediately load from cache if available for a snappy UI
+    if (messageCache.current[activeContact._id]) {
+      setMessages(messageCache.current[activeContact._id]);
+    } else {
+      setMessages([]);
+    }
 
     axios.get("/api/messages/" + activeContact._id)
       .then(r => {
-        setMessages(r.data.messages || []);
+        const fetchedMessages = r.data.messages || [];
+        setMessages(fetchedMessages);
+        messageCache.current[activeContact._id] = fetchedMessages;
         if (!activeContact.isGroup) {
           setUnreadMap(prev => ({ ...prev, [activeContact._id]: 0 }));
           socket?.emit("markRead", { senderId: activeContact._id });
@@ -2957,6 +3024,13 @@ export default function ChatPage() {
         console.error("Failed to load messages:", err);
       });
   }, [activeContact]); // eslint-disable-line
+
+  // Keep cache in sync whenever messages change
+  useEffect(() => {
+    if (activeContact && messages && messages.length > 0) {
+      messageCache.current[activeContact._id] = messages;
+    }
+  }, [messages, activeContact]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 

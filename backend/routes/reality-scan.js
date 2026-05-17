@@ -111,8 +111,8 @@ Be extremely precise. Do NOT guess randomly. Base your verdict solely on the vis
       },
     ];
 
-    // Use gemini-2.5-flash for vision analysis (supports inline image data)
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Use gemini-1.5-flash for vision analysis (supports inline image data)
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const fetchFn = typeof fetch !== "undefined" ? fetch : await importNodeFetch();
 
